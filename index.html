@@ -5,19 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surrogate Hypergolic Simulator</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2c3e50; color: #333; padding: 20px; display: flex; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); max-width: 500px; width: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a252f; color: #333; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 500px; width: 100%; }
         h1 { font-size: 22px; color: #2c3e50; text-align: center; margin-bottom: 5px; }
-        p.subtitle { text-align: center; font-size: 14px; color: #7f8c8d; margin-bottom: 25px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        p.subtitle { text-align: center; font-size: 14px; color: #7f8c8d; margin-bottom: 20px; }
+        
+        /* Visualizer Screen */
+        .visualizer { position: relative; width: 100%; height: 250px; background-color: #2c3e50; border-radius: 8px; margin-bottom: 20px; overflow: hidden; display: flex; justify-content: center; }
+        
+        /* The Aluminum Can */
+        .can { position: absolute; bottom: 10px; width: 120px; height: 140px; border: 4px solid #bdc3c7; border-top: none; background: linear-gradient(to right, #7f8c8d, #95a5a6, #7f8c8d); border-radius: 0 0 10px 10px; z-index: 2; }
+        
+        /* The Injectors */
+        .injector-left { position: absolute; top: 20px; left: 100px; width: 40px; height: 8px; background: #e74c3c; transform: rotate(35deg); border-radius: 4px; z-index: 3;}
+        .injector-right { position: absolute; top: 20px; right: 100px; width: 40px; height: 8px; background: #3498db; transform: rotate(-35deg); border-radius: 4px; z-index: 3;}
+        .inj-label { position: absolute; font-size: 10px; color: white; top: -15px; font-weight: bold;}
+        
+        /* Fluid Streams */
+        .stream-left { position: absolute; top: 38px; left: 132px; width: 4px; height: 0px; background: #8e44ad; transform: rotate(35deg); transform-origin: top center; transition: height 0.2s linear; z-index: 1;}
+        .stream-right { position: absolute; top: 38px; right: 132px; width: 4px; height: 0px; background: #aed6f1; transform: rotate(-35deg); transform-origin: top center; transition: height 0.2s linear; z-index: 1;}
+        
+        /* Flame and Smoke */
+        .explosion { position: absolute; top: 100px; left: 50%; transform: translateX(-50%) scale(0); width: 80px; height: 80px; background: radial-gradient(circle, #fff 10%, #f1c40f 40%, #e67e22 70%, transparent 100%); border-radius: 50%; z-index: 4; opacity: 0; transition: transform 0.1s ease-out, opacity 0.1s ease-out; }
+        .smoke { position: absolute; top: 60px; left: 50%; transform: translateX(-50%) scale(0); width: 120px; height: 100px; background: radial-gradient(circle, rgba(160,82,45,0.8) 20%, rgba(139,69,19,0.5) 60%, transparent 100%); border-radius: 50%; z-index: 5; opacity: 0; transition: transform 0.5s ease-out, opacity 1s ease-out; }
+        
+        /* Inputs */
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group { flex: 1; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 12px; }
+        input { width: 100%; padding: 8px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; text-align: center;}
+        
+        button { width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
         button:hover { background-color: #c0392b; }
-        .flame-box { height: 80px; background: linear-gradient(to top, #e67e22, #f1c40f); border-radius: 8px; margin-top: 20px; display: none; text-align: center; line-height: 80px; color: white; font-weight: bold; font-size: 22px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); animation: flicker 0.1s infinite alternate; }
-        @keyframes flicker { from { opacity: 0.8; } to { opacity: 1; } }
-        .results { margin-top: 20px; padding: 20px; background-color: #ecf0f1; border-left: 6px solid #e74c3c; border-radius: 4px; display: none; }
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; font-size: 14px; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        .results { margin-top: 15px; padding: 15px; background-color: #ecf0f1; border-left: 6px solid #e74c3c; border-radius: 4px; display: none; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #bdc3c7; padding-bottom: 3px; font-size: 13px; }
+        
+        /* Animation classes */
+        .anim-flame { animation: flicker 0.1s infinite alternate; }
+        @keyframes flicker { 0% { transform: translateX(-50%) scale(1.1); opacity: 0.9; } 100% { transform: translateX(-50%) scale(1.3); opacity: 1; } }
+        .anim-smoke { transform: translateX(-50%) scale(1.5) translateY(-40px) !important; opacity: 0 !important; transition: transform 2s ease-out, opacity 2s ease-out !important; }
     </style>
 </head>
 <body>
@@ -25,49 +53,101 @@
         <h1>Surrogate Hypergolic Simulator</h1>
         <p class="subtitle">Experimental Demonstration: KMnO₄ / H₂SO₄ / Ethanol</p>
         
-        <div class="input-group">
-            <label>KMnO₄ Mass (grams)</label>
-            <input type="number" id="kmno4" value="5" step="0.1">
-        </div>
-        <div class="input-group">
-            <label>H₂SO₄ Volume (ml)</label>
-            <input type="number" id="h2so4" value="10" step="0.1">
-        </div>
-        <div class="input-group">
-            <label>Ethanol Volume (ml)</label>
-            <input type="number" id="ethanol" value="25" step="0.1">
+        <div class="visualizer">
+            <div class="injector-left"><span class="inj-label" style="left:0;">Oxidizer</span></div>
+            <div class="injector-right"><span class="inj-label" style="right:0;">Fuel</span></div>
+            
+            <div class="stream-left" id="s-left"></div>
+            <div class="stream-right" id="s-right"></div>
+            
+            <div class="explosion" id="fire"></div>
+            <div class="smoke" id="smk"></div>
+            
+            <div class="can"></div>
         </div>
         
-        <button onclick="simulate()">Inject & Ignite</button>
-
-        <div class="flame-box" id="flame">INSTANTANEOUS IGNITION!</div>
+        <div class="input-row">
+            <div class="input-group">
+                <label>KMnO₄ Mass (g)</label>
+                <input type="number" id="kmno4" value="5" step="0.1">
+            </div>
+            <div class="input-group">
+                <label>H₂SO₄ Vol (ml)</label>
+                <input type="number" id="h2so4" value="10" step="0.1">
+            </div>
+            <div class="input-group">
+                <label>Ethanol Vol (ml)</label>
+                <input type="number" id="ethanol" value="25" step="0.1">
+            </div>
+        </div>
+        
+        <button id="btn-ignite" onclick="runSimulation()">Inject & Ignite</button>
 
         <div class="results" id="results">
-            <h3 style="margin-top:0; color:#2c3e50;">Simulation Results:</h3>
+            <h3 style="margin-top:0; margin-bottom: 10px; color:#2c3e50; font-size: 16px;">Telemetry Data:</h3>
             <div class="data-row"><span>Reaction Status:</span> <strong style="color:#e74c3c;">Highly Exothermic</strong></div>
-            <div class="data-row"><span>Ignition Delay:</span> <strong>~0.001 seconds</strong></div>
+            <div class="data-row"><span>Induction Delay:</span> <strong>~1 Millisecond</strong></div>
             <div class="data-row"><span>Est. Peak Temperature:</span> <strong id="temp"></strong></div>
             <div class="data-row"><span>Solid Residue Yield:</span> <strong id="residue"></strong></div>
-            <div class="data-row"><span>Visual Observation:</span> <strong>Yellow-orange flame</strong></div>
         </div>
     </div>
 
     <script>
-        function simulate() {
+        function runSimulation() {
             var kmno4 = parseFloat(document.getElementById('kmno4').value);
             var h2so4 = parseFloat(document.getElementById('h2so4').value);
             var ethanol = parseFloat(document.getElementById('ethanol').value);
+            var btn = document.getElementById('btn-ignite');
             
             if(kmno4 > 0 && h2so4 > 0 && ethanol > 0) {
-                // Simulated thermochemical math
-                var peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
-                var residueWeight = (kmno4 * 0.88).toFixed(2); // Stoichiometric residue estimate
+                // Lock button
+                btn.disabled = true;
+                btn.innerText = "Igniting...";
                 
-                document.getElementById('flame').style.display = 'block';
-                document.getElementById('results').style.display = 'block';
+                // Hide previous results/fire
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('fire').style.opacity = '0';
+                document.getElementById('fire').style.transform = 'translateX(-50%) scale(0)';
+                document.getElementById('fire').classList.remove('anim-flame');
+                document.getElementById('smk').classList.remove('anim-smoke');
                 
-                document.getElementById('temp').innerText = peakTemp + " °C";
-                document.getElementById('residue').innerText = residueWeight + " g (MnSO₄ / MnO₂)";
+                // 1. Inject Liquids
+                document.getElementById('s-left').style.height = '90px';
+                document.getElementById('s-right').style.height = '90px';
+                
+                // 2. Impingement & Ignition (200ms delay to simulate travel time)
+                setTimeout(() => {
+                    // Turn off streams
+                    document.getElementById('s-left').style.height = '0px';
+                    document.getElementById('s-right').style.height = '0px';
+                    
+                    // Flash flame & Smoke
+                    document.getElementById('fire').style.opacity = '1';
+                    document.getElementById('fire').style.transform = 'translateX(-50%) scale(1.2)';
+                    document.getElementById('fire').classList.add('anim-flame');
+                    
+                    document.getElementById('smk').style.opacity = '1';
+                    document.getElementById('smk').style.transform = 'translateX(-50%) scale(1)';
+                    
+                    // Animate smoke away
+                    setTimeout(() => {
+                        document.getElementById('smk').classList.add('anim-smoke');
+                    }, 50);
+                    
+                    // Show math
+                    var peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
+                    var residueWeight = (kmno4 * 0.88).toFixed(2); 
+                    
+                    document.getElementById('temp').innerText = peakTemp + " °C";
+                    document.getElementById('residue').innerText = residueWeight + " g (MnSO₄/MnO₂)";
+                    document.getElementById('results').style.display = 'block';
+                    
+                    // Reset Button
+                    btn.disabled = false;
+                    btn.innerText = "Reset & Re-Ignite";
+                    
+                }, 200);
+                
             } else {
                 alert("Please enter physical values greater than 0.");
             }
