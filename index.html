@@ -3,155 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surrogate Hypergolic Simulator</title>
+    <title>Hypergolic Telemetry Dashboard</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a252f; color: #333; padding: 20px; display: flex; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 500px; width: 100%; }
-        h1 { font-size: 22px; color: #2c3e50; text-align: center; margin-bottom: 5px; }
-        p.subtitle { text-align: center; font-size: 14px; color: #7f8c8d; margin-bottom: 20px; }
+        body { margin: 0; padding: 20px; background-color: #0d1117; color: #c9d1d9; font-family: 'Consolas', 'Courier New', monospace; display: flex; justify-content: center; }
+        .dashboard { max-width: 800px; width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        .header { text-align: center; border-bottom: 2px solid #238636; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #58a6ff; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; }
+        .header p { margin: 5px 0 0 0; font-size: 12px; color: #8b949e; }
         
-        /* Visualizer Screen */
-        .visualizer { position: relative; width: 100%; height: 250px; background-color: #2c3e50; border-radius: 8px; margin-bottom: 20px; overflow: hidden; display: flex; justify-content: center; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+        @media (max-width: 600px) { .grid-layout { grid-template-columns: 1fr; } }
         
-        /* The Aluminum Can */
-        .can { position: absolute; bottom: 10px; width: 120px; height: 140px; border: 4px solid #bdc3c7; border-top: none; background: linear-gradient(to right, #7f8c8d, #95a5a6, #7f8c8d); border-radius: 0 0 10px 10px; z-index: 2; }
+        /* Controls Section */
+        .controls { background: #0d1117; padding: 15px; border-radius: 6px; border: 1px solid #30363d; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; }
+        input { width: 100%; padding: 8px; background: #21262d; border: 1px solid #30363d; color: #58a6ff; font-family: inherit; font-size: 14px; border-radius: 4px; box-sizing: border-box; text-align: right; }
+        button { width: 100%; padding: 12px; margin-top: 10px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; font-family: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+
+        /* Visualizer Section */
+        .sim-area { position: relative; display: flex; flex-direction: column; gap: 15px; }
+        .canvas-container { position: relative; background: #010409; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; height: 250px; }
+        canvas { display: block; width: 100%; height: 100%; }
         
-        /* The Injectors */
-        .injector-left { position: absolute; top: 20px; left: 100px; width: 40px; height: 8px; background: #e74c3c; transform: rotate(35deg); border-radius: 4px; z-index: 3;}
-        .injector-right { position: absolute; top: 20px; right: 100px; width: 40px; height: 8px; background: #3498db; transform: rotate(-35deg); border-radius: 4px; z-index: 3;}
-        .inj-label { position: absolute; font-size: 10px; color: white; top: -15px; font-weight: bold;}
+        /* Overlay UI on Canvas */
+        .status-badge { position: absolute; top: 10px; left: 10px; font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(35, 134, 54, 0.2); color: #3fb950; border: 1px solid #238636; }
         
-        /* Fluid Streams */
-        .stream-left { position: absolute; top: 38px; left: 132px; width: 4px; height: 0px; background: #8e44ad; transform: rotate(35deg); transform-origin: top center; transition: height 0.2s linear; z-index: 1;}
-        .stream-right { position: absolute; top: 38px; right: 132px; width: 4px; height: 0px; background: #aed6f1; transform: rotate(-35deg); transform-origin: top center; transition: height 0.2s linear; z-index: 1;}
+        /* Live Graph */
+        .graph-container { background: #010409; border: 1px solid #30363d; border-radius: 6px; height: 120px; position: relative; padding: 10px; }
+        .graph-title { position: absolute; top: 5px; left: 10px; font-size: 10px; color: #8b949e; }
         
-        /* Flame and Smoke */
-        .explosion { position: absolute; top: 100px; left: 50%; transform: translateX(-50%) scale(0); width: 80px; height: 80px; background: radial-gradient(circle, #fff 10%, #f1c40f 40%, #e67e22 70%, transparent 100%); border-radius: 50%; z-index: 4; opacity: 0; transition: transform 0.1s ease-out, opacity 0.1s ease-out; }
-        .smoke { position: absolute; top: 60px; left: 50%; transform: translateX(-50%) scale(0); width: 120px; height: 100px; background: radial-gradient(circle, rgba(160,82,45,0.8) 20%, rgba(139,69,19,0.5) 60%, transparent 100%); border-radius: 50%; z-index: 5; opacity: 0; transition: transform 0.5s ease-out, opacity 1s ease-out; }
-        
-        /* Inputs */
-        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .input-group { flex: 1; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 12px; }
-        input { width: 100%; padding: 8px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; text-align: center;}
-        
-        button { width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
-        button:hover { background-color: #c0392b; }
-        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
-        
-        .results { margin-top: 15px; padding: 15px; background-color: #ecf0f1; border-left: 6px solid #e74c3c; border-radius: 4px; display: none; }
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #bdc3c7; padding-bottom: 3px; font-size: 13px; }
-        
-        /* Animation classes */
-        .anim-flame { animation: flicker 0.1s infinite alternate; }
-        @keyframes flicker { 0% { transform: translateX(-50%) scale(1.1); opacity: 0.9; } 100% { transform: translateX(-50%) scale(1.3); opacity: 1; } }
-        .anim-smoke { transform: translateX(-50%) scale(1.5) translateY(-40px) !important; opacity: 0 !important; transition: transform 2s ease-out, opacity 2s ease-out !important; }
+        /* Telemetry Readouts */
+        .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .data-box { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 4px; text-align: center; }
+        .data-box span { display: block; font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        .data-box strong { display: block; font-size: 18px; color: #ff7b72; margin-top: 4px; font-weight: normal; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Surrogate Hypergolic Simulator</h1>
-        <p class="subtitle">Experimental Demonstration: KMnO₄ / H₂SO₄ / Ethanol</p>
-        
-        <div class="visualizer">
-            <div class="injector-left"><span class="inj-label" style="left:0;">Oxidizer</span></div>
-            <div class="injector-right"><span class="inj-label" style="right:0;">Fuel</span></div>
-            
-            <div class="stream-left" id="s-left"></div>
-            <div class="stream-right" id="s-right"></div>
-            
-            <div class="explosion" id="fire"></div>
-            <div class="smoke" id="smk"></div>
-            
-            <div class="can"></div>
-        </div>
-        
-        <div class="input-row">
-            <div class="input-group">
-                <label>KMnO₄ Mass (g)</label>
-                <input type="number" id="kmno4" value="5" step="0.1">
-            </div>
-            <div class="input-group">
-                <label>H₂SO₄ Vol (ml)</label>
-                <input type="number" id="h2so4" value="10" step="0.1">
-            </div>
-            <div class="input-group">
-                <label>Ethanol Vol (ml)</label>
-                <input type="number" id="ethanol" value="25" step="0.1">
-            </div>
-        </div>
-        
-        <button id="btn-ignite" onclick="runSimulation()">Inject & Ignite</button>
 
-        <div class="results" id="results">
-            <h3 style="margin-top:0; margin-bottom: 10px; color:#2c3e50; font-size: 16px;">Telemetry Data:</h3>
-            <div class="data-row"><span>Reaction Status:</span> <strong style="color:#e74c3c;">Highly Exothermic</strong></div>
-            <div class="data-row"><span>Induction Delay:</span> <strong>~1 Millisecond</strong></div>
-            <div class="data-row"><span>Est. Peak Temperature:</span> <strong id="temp"></strong></div>
-            <div class="data-row"><span>Solid Residue Yield:</span> <strong id="residue"></strong></div>
+    <div class="dashboard">
+        <div class="header">
+            <h1>Test Cell Telemetry</h1>
+            <p>KMnO₄ / H₂SO₄ / Ethanol Surrogate Analysis</p>
+        </div>
+
+        <div class="grid-layout">
+            <div class="controls">
+                <div class="input-group">
+                    <label>KMnO₄ Mass (grams)</label>
+                    <input type="number" id="kmno4" value="5" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>H₂SO₄ Vol (ml)</label>
+                    <input type="number" id="h2so4" value="10" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>Ethanol Vol (ml)</label>
+                    <input type="number" id="ethanol" value="25" step="0.1">
+                </div>
+                <button id="btn-ignite" onclick="ignite()">Initiate Sequence</button>
+
+                <div class="telemetry">
+                    <div class="data-box">
+                        <span>Peak Temp</span>
+                        <strong id="out-temp">-- °C</strong>
+                    </div>
+                    <div class="data-box">
+                        <span>Residue</span>
+                        <strong id="out-res">-- g</strong>
+                    </div>
+                    <div class="data-box">
+                        <span>Delay</span>
+                        <strong id="out-delay">-- ms</strong>
+                    </div>
+                    <div class="data-box">
+                        <span>Status</span>
+                        <strong id="out-status" style="color:#8b949e;">STANDBY</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sim-area">
+                <div class="canvas-container">
+                    <div class="status-badge" id="badge">CAM-01: NOMINAL</div>
+                    <canvas id="simCanvas"></canvas>
+                </div>
+                
+                <div class="graph-container">
+                    <span class="graph-title">TRANSIENT THERMAL RESPONSE (T vs. t)</span>
+                    <canvas id="graphCanvas"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        function runSimulation() {
-            var kmno4 = parseFloat(document.getElementById('kmno4').value);
-            var h2so4 = parseFloat(document.getElementById('h2so4').value);
-            var ethanol = parseFloat(document.getElementById('ethanol').value);
-            var btn = document.getElementById('btn-ignite');
-            
-            if(kmno4 > 0 && h2so4 > 0 && ethanol > 0) {
-                // Lock button
-                btn.disabled = true;
-                btn.innerText = "Igniting...";
+        // --- Setup Canvases ---
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const gCtx = graphCanvas.getContext('2d');
+        
+        // Match CSS sizes
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = 250;
+        graphCanvas.width = graphCanvas.parentElement.clientWidth - 20;
+        graphCanvas.height = 100;
+
+        // --- Physics Engine State ---
+        let isInjecting = false;
+        let isBurning = false;
+        let particles = [];
+        let streams = { y: 0, active: false };
+        let graphData = [];
+        let timeStep = 0;
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x; this.y = y; this.type = type;
+                this.life = 1.0;
                 
-                // Hide previous results/fire
-                document.getElementById('results').style.display = 'none';
-                document.getElementById('fire').style.opacity = '0';
-                document.getElementById('fire').style.transform = 'translateX(-50%) scale(0)';
-                document.getElementById('fire').classList.remove('anim-flame');
-                document.getElementById('smk').classList.remove('anim-smoke');
-                
-                // 1. Inject Liquids
-                document.getElementById('s-left').style.height = '90px';
-                document.getElementById('s-right').style.height = '90px';
-                
-                // 2. Impingement & Ignition (200ms delay to simulate travel time)
-                setTimeout(() => {
-                    // Turn off streams
-                    document.getElementById('s-left').style.height = '0px';
-                    document.getElementById('s-right').style.height = '0px';
-                    
-                    // Flash flame & Smoke
-                    document.getElementById('fire').style.opacity = '1';
-                    document.getElementById('fire').style.transform = 'translateX(-50%) scale(1.2)';
-                    document.getElementById('fire').classList.add('anim-flame');
-                    
-                    document.getElementById('smk').style.opacity = '1';
-                    document.getElementById('smk').style.transform = 'translateX(-50%) scale(1)';
-                    
-                    // Animate smoke away
-                    setTimeout(() => {
-                        document.getElementById('smk').classList.add('anim-smoke');
-                    }, 50);
-                    
-                    // Show math
-                    var peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
-                    var residueWeight = (kmno4 * 0.88).toFixed(2); 
-                    
-                    document.getElementById('temp').innerText = peakTemp + " °C";
-                    document.getElementById('residue').innerText = residueWeight + " g (MnSO₄/MnO₂)";
-                    document.getElementById('results').style.display = 'block';
-                    
-                    // Reset Button
-                    btn.disabled = false;
-                    btn.innerText = "Reset & Re-Ignite";
-                    
-                }, 200);
-                
-            } else {
-                alert("Please enter physical values greater than 0.");
+                if (type === 'fire') {
+                    this.vx = (Math.random() - 0.5) * 6;
+                    this.vy = (Math.random() * -8) - 2;
+                    this.size = Math.random() * 8 + 4;
+                    this.decay = Math.random() * 0.05 + 0.02;
+                    this.color = Math.random() > 0.5 ? '#ff7b72' : '#ffa657'; // Red/Orange
+                } else {
+                    // Smoke
+                    this.vx = (Math.random() - 0.5) * 4;
+                    this.vy = (Math.random() * -3) - 1;
+                    this.size = Math.random() * 15 + 10;
+                    this.decay = Math.random() * 0.02 + 0.01;
+                    this.color = `rgba(139, 69, 19, ${Math.random()*0.5 + 0.2})`; // Brownish
+                }
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life -= this.decay;
+                if(this.type === 'smoke') { this.size += 0.5; this.x += Math.sin(this.life*10)*0.5; }
+            }
+            draw(c) {
+                c.globalAlpha = Math.max(0, this.life);
+                c.fillStyle = this.color;
+                c.beginPath();
+                c.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                c.fill();
+                c.globalAlpha = 1.0;
             }
         }
+
+        function drawEnvironment() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Aluminum Can
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#8b949e';
+            ctx.fillStyle = '#21262d';
+            ctx.beginPath();
+            ctx.rect(canvas.width/2 - 40, canvas.height - 100, 80, 100);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw Injectors
+            ctx.lineWidth = 6;
+            // Left (Oxidizer)
+            ctx.strokeStyle = '#d2a8ff';
+            ctx.beginPath(); ctx.moveTo(canvas.width/2 - 60, 20); ctx.lineTo(canvas.width/2 - 20, 50); ctx.stroke();
+            // Right (Fuel)
+            ctx.strokeStyle = '#79c0ff';
+            ctx.beginPath(); ctx.moveTo(canvas.width/2 + 60, 20); ctx.lineTo(canvas.width/2 + 20, 50); ctx.stroke();
+
+            // Draw Streams
+            if (streams.active) {
+                ctx.lineWidth = 3;
+                streams.y += 10;
+                if(streams.y > 100) streams.y = 100;
+                
+                ctx.strokeStyle = '#d2a8ff';
+                ctx.beginPath(); ctx.moveTo(canvas.width/2 - 20, 50); ctx.lineTo(canvas.width/2, streams.y); ctx.stroke();
+                
+                ctx.strokeStyle = '#79c0ff';
+                ctx.beginPath(); ctx.moveTo(canvas.width/2 + 20, 50); ctx.lineTo(canvas.width/2, streams.y); ctx.stroke();
+                
+                if(streams.y >= 100 && !isBurning) {
+                    isBurning = true;
+                    document.getElementById('badge').innerText = "IGNITION!";
+                    document.getElementById('badge').style.color = "#ff7b72";
+                    document.getElementById('badge').style.borderColor = "#ff7b72";
+                    document.getElementById('badge').style.background = "rgba(255, 123, 114, 0.2)";
+                }
+            }
+
+            // Draw Particles
+            if (isBurning) {
+                // Spawn new particles
+                for(let i=0; i<5; i++) particles.push(new Particle(canvas.width/2, 100, 'fire'));
+                for(let i=0; i<2; i++) particles.push(new Particle(canvas.width/2, 90, 'smoke'));
+            }
+            
+            // Update and draw existing
+            for(let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(ctx);
+                if(particles[i].life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function drawGraph() {
+            gCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            
+            // Grid lines
+            gCtx.strokeStyle = '#30363d';
+            gCtx.lineWidth = 1;
+            gCtx.beginPath(); gCtx.moveTo(0, graphCanvas.height/2); gCtx.lineTo(graphCanvas.width, graphCanvas.height/2); gCtx.stroke();
+            
+            if (graphData.length === 0) return;
+
+            gCtx.strokeStyle = '#ff7b72';
+            gCtx.lineWidth = 2;
+            gCtx.beginPath();
+            
+            let maxTemp = Math.max(...graphData, 100);
+            
+            for(let i=0; i<graphData.length; i++) {
+                let x = (i / 100) * graphCanvas.width; // 100 ticks width
+                let y = graphCanvas.height - ((graphData[i] / maxTemp) * (graphCanvas.height - 10));
+                if(i===0) gCtx.moveTo(x, y);
+                else gCtx.lineTo(x, y);
+            }
+            gCtx.stroke();
+        }
+
+        function loop() {
+            drawEnvironment();
+            
+            // Update Graph logic
+            if (isInjecting) {
+                timeStep++;
+                if (timeStep < 20) {
+                    graphData.push(20); // Ambient before impingement
+                } else if (isBurning && timeStep < 40) {
+                    // Huge spike
+                    let val = graphData[graphData.length-1] + 150;
+                    graphData.push(val);
+                } else if (isBurning) {
+                    // Plateau
+                    let val = graphData[graphData.length-1] + (Math.random()*20 - 10);
+                    graphData.push(val);
+                }
+                
+                if(graphData.length > 100) graphData.shift();
+                drawGraph();
+            }
+            
+            requestAnimationFrame(loop);
+        }
+
+        function ignite() {
+            let kmno4 = parseFloat(document.getElementById('kmno4').value);
+            let ethanol = parseFloat(document.getElementById('ethanol').value);
+            
+            if(kmno4 > 0 && ethanol > 0) {
+                document.getElementById('btn-ignite').disabled = true;
+                
+                // Math
+                let peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
+                let residueWeight = (kmno4 * 0.88).toFixed(2);
+                
+                // Reset State
+                particles = [];
+                graphData = [20];
+                timeStep = 0;
+                streams.y = 20;
+                streams.active = true;
+                isInjecting = true;
+                isBurning = false;
+                
+                document.getElementById('out-status').innerText = "INJECTING";
+                document.getElementById('out-status').style.color = "#79c0ff";
+
+                // Stop injection after 1.5s
+                setTimeout(() => {
+                    streams.active = false;
+                    document.getElementById('out-temp').innerText = peakTemp + " °C";
+                    document.getElementById('out-res').innerText = residueWeight + " g";
+                    document.getElementById('out-delay').innerText = "1.2 ms";
+                    document.getElementById('out-status').innerText = "EXOTHERMIC";
+                    document.getElementById('out-status').style.color = "#ff7b72";
+                }, 1500);
+
+                // End burn after 3s
+                setTimeout(() => {
+                    isBurning = false;
+                    isInjecting = false;
+                    document.getElementById('btn-ignite').disabled = false;
+                    document.getElementById('btn-ignite').innerText = "RE-ARM SYSTEM";
+                    document.getElementById('badge').innerText = "TEST COMPLETE";
+                    document.getElementById('badge').style.color = "#8b949e";
+                    document.getElementById('badge').style.borderColor = "#8b949e";
+                    document.getElementById('badge').style.background = "transparent";
+                }, 3000);
+            }
+        }
+
+        // Start render loop
+        loop();
+        drawGraph();
     </script>
 </body>
 </html>
