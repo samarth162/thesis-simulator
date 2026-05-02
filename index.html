@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surrogate Hypergolic Simulator</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2c3e50; color: #333; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); max-width: 500px; width: 100%; }
+        h1 { font-size: 22px; color: #2c3e50; text-align: center; margin-bottom: 5px; }
+        p.subtitle { text-align: center; font-size: 14px; color: #7f8c8d; margin-bottom: 25px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        button:hover { background-color: #c0392b; }
+        .flame-box { height: 80px; background: linear-gradient(to top, #e67e22, #f1c40f); border-radius: 8px; margin-top: 20px; display: none; text-align: center; line-height: 80px; color: white; font-weight: bold; font-size: 22px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); animation: flicker 0.1s infinite alternate; }
+        @keyframes flicker { from { opacity: 0.8; } to { opacity: 1; } }
+        .results { margin-top: 20px; padding: 20px; background-color: #ecf0f1; border-left: 6px solid #e74c3c; border-radius: 4px; display: none; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Surrogate Hypergolic Simulator</h1>
+        <p class="subtitle">Experimental Demonstration: KMnO₄ / H₂SO₄ / Ethanol</p>
+        
+        <div class="input-group">
+            <label>KMnO₄ Mass (grams)</label>
+            <input type="number" id="kmno4" value="5" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>H₂SO₄ Volume (ml)</label>
+            <input type="number" id="h2so4" value="10" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>Ethanol Volume (ml)</label>
+            <input type="number" id="ethanol" value="25" step="0.1">
+        </div>
+        
+        <button onclick="simulate()">Inject & Ignite</button>
+
+        <div class="flame-box" id="flame">INSTANTANEOUS IGNITION!</div>
+
+        <div class="results" id="results">
+            <h3 style="margin-top:0; color:#2c3e50;">Simulation Results:</h3>
+            <div class="data-row"><span>Reaction Status:</span> <strong style="color:#e74c3c;">Highly Exothermic</strong></div>
+            <div class="data-row"><span>Ignition Delay:</span> <strong>~0.001 seconds</strong></div>
+            <div class="data-row"><span>Est. Peak Temperature:</span> <strong id="temp"></strong></div>
+            <div class="data-row"><span>Solid Residue Yield:</span> <strong id="residue"></strong></div>
+            <div class="data-row"><span>Visual Observation:</span> <strong>Yellow-orange flame</strong></div>
+        </div>
+    </div>
+
+    <script>
+        function simulate() {
+            var kmno4 = parseFloat(document.getElementById('kmno4').value);
+            var h2so4 = parseFloat(document.getElementById('h2so4').value);
+            var ethanol = parseFloat(document.getElementById('ethanol').value);
+            
+            if(kmno4 > 0 && h2so4 > 0 && ethanol > 0) {
+                // Simulated thermochemical math
+                var peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
+                var residueWeight = (kmno4 * 0.88).toFixed(2); // Stoichiometric residue estimate
+                
+                document.getElementById('flame').style.display = 'block';
+                document.getElementById('results').style.display = 'block';
+                
+                document.getElementById('temp').innerText = peakTemp + " °C";
+                document.getElementById('residue').innerText = residueWeight + " g (MnSO₄ / MnO₂)";
+            } else {
+                alert("Please enter physical values greater than 0.");
+            }
+        }
+    </script>
+</body>
+</html>
