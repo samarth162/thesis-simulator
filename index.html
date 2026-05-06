@@ -1,318 +1,1414 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hypergolic Telemetry Dashboard</title>
-    <style>
-        body { margin: 0; padding: 20px; background-color: #0d1117; color: #c9d1d9; font-family: 'Consolas', 'Courier New', monospace; display: flex; justify-content: center; }
-        .dashboard { max-width: 800px; width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-        .header { text-align: center; border-bottom: 2px solid #238636; padding-bottom: 10px; margin-bottom: 20px; }
-        .header h1 { margin: 0; color: #58a6ff; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; }
-        .header p { margin: 5px 0 0 0; font-size: 12px; color: #8b949e; }
-        
-        .grid-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
-        @media (max-width: 600px) { .grid-layout { grid-template-columns: 1fr; } }
-        
-        /* Controls Section */
-        .controls { background: #0d1117; padding: 15px; border-radius: 6px; border: 1px solid #30363d; }
-        .input-group { margin-bottom: 12px; }
-        label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; }
-        input { width: 100%; padding: 8px; background: #21262d; border: 1px solid #30363d; color: #58a6ff; font-family: inherit; font-size: 14px; border-radius: 4px; box-sizing: border-box; text-align: right; }
-        button { width: 100%; padding: 12px; margin-top: 10px; background: #238636; color: white; border: none; border-radius: 4px; font-weight: bold; font-family: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
-        button:hover { background: #2ea043; }
-        button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HGRS-7 | Hypergolic Reaction Telemetry System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
 
-        /* Visualizer Section */
-        .sim-area { position: relative; display: flex; flex-direction: column; gap: 15px; }
-        .canvas-container { position: relative; background: #010409; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; height: 250px; }
-        canvas { display: block; width: 100%; height: 100%; }
-        
-        /* Overlay UI on Canvas */
-        .status-badge { position: absolute; top: 10px; left: 10px; font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(35, 134, 54, 0.2); color: #3fb950; border: 1px solid #238636; }
-        
-        /* Live Graph */
-        .graph-container { background: #010409; border: 1px solid #30363d; border-radius: 6px; height: 120px; position: relative; padding: 10px; }
-        .graph-title { position: absolute; top: 5px; left: 10px; font-size: 10px; color: #8b949e; }
-        
-        /* Telemetry Readouts */
-        .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .data-box { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 4px; text-align: center; }
-        .data-box span { display: block; font-size: 10px; color: #8b949e; text-transform: uppercase; }
-        .data-box strong { display: block; font-size: 18px; color: #ff7b72; margin-top: 4px; font-weight: normal; }
-    </style>
+:root {
+  --bg-deep:    #020408;
+  --bg-panel:   rgba(6,14,24,0.85);
+  --bg-card:    rgba(10,20,36,0.7);
+  --neon-green: #00ff88;
+  --neon-blue:  #00c8ff;
+  --neon-red:   #ff2244;
+  --neon-amber: #ffaa00;
+  --neon-cyan:  #00eeff;
+  --dim-text:   #4a6a8a;
+  --mid-text:   #7899aa;
+  --bright-text:#c8e8ff;
+  --border:     rgba(0,200,255,0.15);
+  --border-hot: rgba(255,34,68,0.5);
+  --glow-blue:  0 0 20px rgba(0,200,255,0.3);
+  --glow-green: 0 0 20px rgba(0,255,136,0.3);
+  --glow-red:   0 0 20px rgba(255,34,68,0.4);
+  --font-mono:  'Share Tech Mono', monospace;
+  --font-head:  'Orbitron', sans-serif;
+  --font-ui:    'Rajdhani', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--bright-text);
+  font-family: var(--font-mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ── GRID BACKGROUND ───────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,100,180,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── MAIN LAYOUT ───────────────────────────────────── */
+#app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0 16px 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ────────────────────────────────────────── */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.logo-block { display: flex; align-items: center; gap: 14px; }
+.logo-icon {
+  width: 42px; height: 42px;
+  border: 2px solid var(--neon-blue);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: var(--glow-blue);
+  animation: ledPulse 3s ease-in-out infinite;
+}
+@keyframes ledPulse {
+  0%,100% { box-shadow: 0 0 12px rgba(0,200,255,0.4); }
+  50%      { box-shadow: 0 0 28px rgba(0,200,255,0.8); }
+}
+.logo-text h1 {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--neon-blue);
+  text-shadow: 0 0 14px rgba(0,200,255,0.6);
+}
+.logo-text p {
+  font-size: 10px;
+  color: var(--dim-text);
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+.header-status {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.hdr-led {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--dim-text); letter-spacing: 1px;
+}
+.led {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #1a3a1a;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.led.green { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+.led.red   { background: var(--neon-red);   box-shadow: 0 0 8px var(--neon-red);   animation: blink 0.8s infinite; }
+.led.amber { background: var(--neon-amber); box-shadow: 0 0 8px var(--neon-amber); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.mission-clock {
+  font-family: var(--font-head);
+  font-size: 13px;
+  color: var(--neon-amber);
+  letter-spacing: 2px;
+}
+
+/* ── TWO-COLUMN LAYOUT ─────────────────────────────── */
+#main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  flex: 1;
+}
+@media(max-width: 900px){
+  #main { grid-template-columns: 1fr; }
+}
+
+/* ── GLASS PANEL ───────────────────────────────────── */
+.glass {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.4s;
+}
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0,200,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.glass.hot { border-color: var(--border-hot); }
+.glass.hot::before { background: linear-gradient(135deg, rgba(255,34,68,0.06) 0%, transparent 60%); }
+
+.panel-title {
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--dim-text);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title::before {
+  content: '';
+  width: 16px; height: 1px;
+  background: var(--neon-blue);
+  box-shadow: 0 0 6px var(--neon-blue);
+}
+
+/* ── LEFT PANEL ────────────────────────────────────── */
+#left-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* Slider groups */
+.slider-group { margin-bottom: 14px; }
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.slider-label span:first-child {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--mid-text);
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.slider-val {
+  font-size: 15px;
+  color: var(--neon-blue);
+  font-family: var(--font-head);
+  text-shadow: 0 0 10px rgba(0,200,255,0.5);
+  min-width: 54px;
+  text-align: right;
+}
+.slider-unit {
+  font-size: 9px;
+  color: var(--dim-text);
+  margin-left: 2px;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(0,200,255,0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0,200,255,0.8);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 18px rgba(0,200,255,1);
+}
+input[type=range]#s-kmno4::-webkit-slider-thumb { background: #cc66ff; box-shadow: 0 0 10px rgba(200,100,255,0.8); }
+input[type=range]#s-h2so4::-webkit-slider-thumb { background: #ff8833; box-shadow: 0 0 10px rgba(255,136,50,0.8); }
+input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan); box-shadow: 0 0 10px rgba(0,238,255,0.8); }
+
+/* Track fill via CSS trick */
+.slider-track-wrap { position: relative; }
+.slider-fill {
+  position: absolute;
+  height: 4px;
+  top: 50%; transform: translateY(-50%);
+  left: 0;
+  border-radius: 2px;
+  pointer-events: none;
+  transition: width 0.1s;
+}
+.fill-purple { background: linear-gradient(90deg, #6600cc, #cc66ff); }
+.fill-orange { background: linear-gradient(90deg, #cc4400, #ff8833); }
+.fill-cyan   { background: linear-gradient(90deg, #007799, var(--neon-cyan)); }
+
+/* Action buttons */
+.btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  transition: left 0.4s;
+}
+.btn:hover::before { left: 100%; }
+.btn-ignite {
+  background: linear-gradient(135deg, #8b0000, #cc0022, #ff2244);
+  color: #fff;
+  box-shadow: 0 0 24px rgba(255,34,68,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.btn-ignite:hover { box-shadow: 0 0 40px rgba(255,34,68,0.7), inset 0 1px 0 rgba(255,255,255,0.15); }
+.btn-ignite:disabled { background: #1a1a1a; color: #333; box-shadow: none; cursor: not-allowed; }
+.btn-reset {
+  background: rgba(0,200,255,0.08);
+  color: var(--neon-blue);
+  border: 1px solid rgba(0,200,255,0.3);
+  box-shadow: 0 0 12px rgba(0,200,255,0.1);
+}
+.btn-reset:hover { background: rgba(0,200,255,0.15); box-shadow: 0 0 20px rgba(0,200,255,0.25); }
+
+/* ── TELEMETRY GRID ─────────────────────────────────── */
+.telem-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.telem-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.telem-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--neon-blue);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s ease, background 0.3s;
+}
+.telem-card.active::after { transform: scaleX(1); }
+.telem-card.hot::after    { background: var(--neon-red); }
+.telem-card.warn::after   { background: var(--neon-amber); }
+.tc-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--dim-text);
+  letter-spacing: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.tc-value {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--neon-blue);
+  line-height: 1;
+  transition: color 0.3s;
+}
+.tc-unit {
+  font-size: 9px;
+  color: var(--dim-text);
+  margin-left: 3px;
+}
+.tc-value.hot  { color: var(--neon-red);   text-shadow: 0 0 12px rgba(255,34,68,0.6); }
+.tc-value.warn { color: var(--neon-amber); text-shadow: 0 0 12px rgba(255,170,0,0.6); }
+.tc-value.go   { color: var(--neon-green); text-shadow: 0 0 12px rgba(0,255,136,0.6); }
+
+.status-badge-lg {
+  grid-column: span 2;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 3px;
+  border: 1px solid rgba(74,106,138,0.3);
+  color: var(--mid-text);
+  background: var(--bg-card);
+  transition: all 0.3s;
+}
+.status-badge-lg.standby { color: var(--dim-text); }
+.status-badge-lg.injecting { color: var(--neon-blue); border-color: var(--neon-blue); background: rgba(0,200,255,0.06); box-shadow: 0 0 16px rgba(0,200,255,0.15); }
+.status-badge-lg.burning { color: var(--neon-red); border-color: var(--neon-red); background: rgba(255,34,68,0.08); box-shadow: 0 0 20px rgba(255,34,68,0.2); animation: hotPulse 0.6s ease-in-out infinite; }
+.status-badge-lg.complete { color: var(--neon-green); border-color: var(--neon-green); background: rgba(0,255,136,0.06); }
+@keyframes hotPulse { 0%,100%{box-shadow:0 0 20px rgba(255,34,68,0.2)} 50%{box-shadow:0 0 40px rgba(255,34,68,0.5)} }
+
+/* ── RIGHT PANEL ────────────────────────────────────── */
+#right-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* Simulation canvas */
+#sim-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+#simCanvas {
+  display: block;
+  width: 100%;
+  height: 360px;
+  border-radius: 10px;
+  cursor: crosshair;
+}
+.cam-badge {
+  position: absolute;
+  top: 12px; left: 14px;
+  font-size: 9px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,200,255,0.4);
+  background: rgba(2,4,8,0.7);
+  color: var(--neon-blue);
+  letter-spacing: 1.5px;
+  font-family: var(--font-head);
+  backdrop-filter: blur(4px);
+}
+.rec-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--neon-red);
+  margin-right: 5px;
+  animation: blink 1.2s infinite;
+}
+.zoom-controls {
+  position: absolute;
+  top: 12px; right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zoom-btn {
+  width: 26px; height: 26px;
+  background: rgba(2,4,8,0.7);
+  border: 1px solid rgba(0,200,255,0.3);
+  color: var(--neon-blue);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+.zoom-btn:hover { background: rgba(0,200,255,0.15); }
+
+/* ── ROW: graph + log ───────────────────────────────── */
+#bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  flex: 1;
+}
+@media(max-width: 700px){ #bottom-row { grid-template-columns: 1fr; } }
+
+/* Graph */
+#graphCanvas {
+  display: block;
+  width: 100%;
+  height: 160px;
+  border-radius: 6px;
+}
+.graph-legend {
+  display: flex; gap: 12px; margin-top: 8px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; color: var(--dim-text); letter-spacing: 1px;
+}
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Log terminal */
+#log-terminal {
+  height: 160px;
+  overflow-y: auto;
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--neon-green);
+  background: rgba(0,10,2,0.6);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+}
+#log-terminal::-webkit-scrollbar { width: 4px; }
+#log-terminal::-webkit-scrollbar-track { background: transparent; }
+#log-terminal::-webkit-scrollbar-thumb { background: rgba(0,255,136,0.3); border-radius: 2px; }
+.log-line { border-bottom: 1px solid rgba(0,255,136,0.05); padding: 1px 0; }
+.log-warn { color: var(--neon-amber); }
+.log-error { color: var(--neon-red); }
+.log-dim  { color: var(--dim-text); }
+.log-bright { color: #fff; }
+
+.cursor-blink::after {
+  content: '_';
+  animation: blink 0.7s infinite;
+  color: var(--neon-green);
+}
+
+/* ── SHOCKWAVE ─────────────────────────────────────── */
+.shockwave {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(255,200,0,0.8);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: shockwaveAnim 0.6s ease-out forwards;
+}
+@keyframes shockwaveAnim {
+  0%   { width:0px;height:0px;opacity:1; }
+  100% { width:300px;height:300px;opacity:0; }
+}
+
+/* ── FOOTER ────────────────────────────────────────── */
+#footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-family: var(--font-ui);
+  color: var(--dim-text);
+  font-size: 12px;
+  line-height: 1.8;
+  letter-spacing: 1px;
+}
+#footer .highlight {
+  color: var(--neon-blue);
+  font-weight: 600;
+}
+.visitor-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: rgba(0,200,255,0.08);
+  border: 1px solid rgba(0,200,255,0.2);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--neon-cyan);
+}
+
+/* ── SCROLLBAR global ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius: 3px; }
+</style>
 </head>
 <body>
+<div id="app">
 
-    <div class="dashboard">
-        <div class="header">
-            <h1>Test Cell Telemetry</h1>
-            <p>KMnO₄ / H₂SO₄ / Ethanol Surrogate Analysis</p>
-        </div>
-
-        <div class="grid-layout">
-            <div class="controls">
-                <div class="input-group">
-                    <label>KMnO₄ Mass (grams)</label>
-                    <input type="number" id="kmno4" value="5" step="0.1">
-                </div>
-                <div class="input-group">
-                    <label>H₂SO₄ Vol (ml)</label>
-                    <input type="number" id="h2so4" value="10" step="0.1">
-                </div>
-                <div class="input-group">
-                    <label>Ethanol Vol (ml)</label>
-                    <input type="number" id="ethanol" value="25" step="0.1">
-                </div>
-                <button id="btn-ignite" onclick="ignite()">Initiate Sequence</button>
-
-                <div class="telemetry">
-                    <div class="data-box">
-                        <span>Peak Temp</span>
-                        <strong id="out-temp">-- °C</strong>
-                    </div>
-                    <div class="data-box">
-                        <span>Residue</span>
-                        <strong id="out-res">-- g</strong>
-                    </div>
-                    <div class="data-box">
-                        <span>Delay</span>
-                        <strong id="out-delay">-- ms</strong>
-                    </div>
-                    <div class="data-box">
-                        <span>Status</span>
-                        <strong id="out-status" style="color:#8b949e;">STANDBY</strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sim-area">
-                <div class="canvas-container">
-                    <div class="status-badge" id="badge">CAM-01: NOMINAL</div>
-                    <canvas id="simCanvas"></canvas>
-                </div>
-                
-                <div class="graph-container">
-                    <span class="graph-title">TRANSIENT THERMAL RESPONSE (T vs. t)</span>
-                    <canvas id="graphCanvas"></canvas>
-                </div>
-            </div>
-        </div>
+  <div id="header">
+    <div class="logo-block">
+      <div class="logo-icon">🚀</div>
+      <div class="logo-text">
+        <h1>HGRS-7 TELEMETRY</h1>
+        <p>HYPERGOLIC REACTION GROUND TEST BED · REV 7.4.2</p>
+      </div>
     </div>
+    <div class="header-status">
+      <div class="hdr-led">
+        <div class="led green" id="led-power"></div>SYS POWER
+      </div>
+      <div class="hdr-led">
+        <div class="led" id="led-ign"></div>IGNITION
+      </div>
+      <div class="hdr-led">
+        <div class="led" id="led-data"></div>DATA LOG
+      </div>
+      <div class="mission-clock" id="mission-clock">T+00:00:00</div>
+    </div>
+  </div>
 
-    <script>
-        // --- Setup Canvases ---
-        const canvas = document.getElementById('simCanvas');
-        const ctx = canvas.getContext('2d');
-        const graphCanvas = document.getElementById('graphCanvas');
-        const gCtx = graphCanvas.getContext('2d');
-        
-        // Match CSS sizes
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = 250;
-        graphCanvas.width = graphCanvas.parentElement.clientWidth - 20;
-        graphCanvas.height = 100;
+  <div id="main">
 
-        // --- Physics Engine State ---
-        let isInjecting = false;
-        let isBurning = false;
-        let particles = [];
-        let streams = { y: 0, active: false };
-        let graphData = [];
-        let timeStep = 0;
+    <div id="left-panel">
 
-        class Particle {
-            constructor(x, y, type) {
-                this.x = x; this.y = y; this.type = type;
-                this.life = 1.0;
-                
-                if (type === 'fire') {
-                    this.vx = (Math.random() - 0.5) * 6;
-                    this.vy = (Math.random() * -8) - 2;
-                    this.size = Math.random() * 8 + 4;
-                    this.decay = Math.random() * 0.05 + 0.02;
-                    this.color = Math.random() > 0.5 ? '#ff7b72' : '#ffa657'; // Red/Orange
-                } else {
-                    // Smoke
-                    this.vx = (Math.random() - 0.5) * 4;
-                    this.vy = (Math.random() * -3) - 1;
-                    this.size = Math.random() * 15 + 10;
-                    this.decay = Math.random() * 0.02 + 0.01;
-                    this.color = `rgba(139, 69, 19, ${Math.random()*0.5 + 0.2})`; // Brownish
-                }
-            }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                this.life -= this.decay;
-                if(this.type === 'smoke') { this.size += 0.5; this.x += Math.sin(this.life*10)*0.5; }
-            }
-            draw(c) {
-                c.globalAlpha = Math.max(0, this.life);
-                c.fillStyle = this.color;
-                c.beginPath();
-                c.arc(this.x, this.y, this.size, 0, Math.PI*2);
-                c.fill();
-                c.globalAlpha = 1.0;
-            }
-        }
+      <div class="glass" id="reactants-panel">
+        <div class="panel-title">Propellant Configuration</div>
 
-        function drawEnvironment() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw Aluminum Can
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = '#8b949e';
-            ctx.fillStyle = '#21262d';
-            ctx.beginPath();
-            ctx.rect(canvas.width/2 - 40, canvas.height - 100, 80, 100);
-            ctx.fill();
-            ctx.stroke();
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>KMnO₄ (Oxidizer)</span>
+            <span><span class="slider-val" id="v-kmno4">5.0</span><span class="slider-unit">g</span></span>
+          </div>
+          <div class="slider-track-wrap" style="position:relative;">
+            <div class="slider-fill fill-purple" id="f-kmno4" style="width:25%"></div>
+            <input type="range" id="s-kmno4" min="1" max="20" step="0.5" value="5">
+          </div>
+        </div>
 
-            // Draw Injectors
-            ctx.lineWidth = 6;
-            // Left (Oxidizer)
-            ctx.strokeStyle = '#d2a8ff';
-            ctx.beginPath(); ctx.moveTo(canvas.width/2 - 60, 20); ctx.lineTo(canvas.width/2 - 20, 50); ctx.stroke();
-            // Right (Fuel)
-            ctx.strokeStyle = '#79c0ff';
-            ctx.beginPath(); ctx.moveTo(canvas.width/2 + 60, 20); ctx.lineTo(canvas.width/2 + 20, 50); ctx.stroke();
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>H₂SO₄ (Catalyst)</span>
+            <span><span class="slider-val" id="v-h2so4" style="color:#ff8833">10.0</span><span class="slider-unit">ml</span></span>
+          </div>
+          <div class="slider-track-wrap" style="position:relative;">
+            <div class="slider-fill fill-orange" id="f-h2so4" style="width:33%"></div>
+            <input type="range" id="s-h2so4" min="2" max="30" step="0.5" value="10">
+          </div>
+        </div>
 
-            // Draw Streams
-            if (streams.active) {
-                ctx.lineWidth = 3;
-                streams.y += 10;
-                if(streams.y > 100) streams.y = 100;
-                
-                ctx.strokeStyle = '#d2a8ff';
-                ctx.beginPath(); ctx.moveTo(canvas.width/2 - 20, 50); ctx.lineTo(canvas.width/2, streams.y); ctx.stroke();
-                
-                ctx.strokeStyle = '#79c0ff';
-                ctx.beginPath(); ctx.moveTo(canvas.width/2 + 20, 50); ctx.lineTo(canvas.width/2, streams.y); ctx.stroke();
-                
-                if(streams.y >= 100 && !isBurning) {
-                    isBurning = true;
-                    document.getElementById('badge').innerText = "IGNITION!";
-                    document.getElementById('badge').style.color = "#ff7b72";
-                    document.getElementById('badge').style.borderColor = "#ff7b72";
-                    document.getElementById('badge').style.background = "rgba(255, 123, 114, 0.2)";
-                }
-            }
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Ethanol Surrogate (Fuel)</span>
+            <span><span class="slider-val" id="v-ethanol" style="color:var(--neon-cyan)">25.0</span><span class="slider-unit">ml</span></span>
+          </div>
+          <div class="slider-track-wrap" style="position:relative;">
+            <div class="slider-fill fill-cyan" id="f-ethanol" style="width:50%"></div>
+            <input type="range" id="s-ethanol" min="5" max="50" step="1" value="25">
+          </div>
+        </div>
+      </div>
 
-            // Draw Particles
-            if (isBurning) {
-                // Spawn new particles
-                for(let i=0; i<5; i++) particles.push(new Particle(canvas.width/2, 100, 'fire'));
-                for(let i=0; i<2; i++) particles.push(new Particle(canvas.width/2, 90, 'smoke'));
-            }
-            
-            // Update and draw existing
-            for(let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                particles[i].draw(ctx);
-                if(particles[i].life <= 0) particles.splice(i, 1);
-            }
-        }
+      <div class="glass">
+        <div class="panel-title">Live Telemetry</div>
+        <div class="telem-grid">
+          <div class="telem-card" id="tc-temp">
+            <div class="tc-label">Peak Temp</div>
+            <div class="tc-value hot" id="out-temp">--</div>
+            <span class="tc-unit">°C</span>
+          </div>
+          <div class="telem-card" id="tc-pres">
+            <div class="tc-label">Pressure</div>
+            <div class="tc-value" id="out-pres">--</div>
+            <span class="tc-unit">bar</span>
+          </div>
+          <div class="telem-card" id="tc-res">
+            <div class="tc-label">Residue</div>
+            <div class="tc-value go" id="out-res">--</div>
+            <span class="tc-unit">g</span>
+          </div>
+          <div class="telem-card" id="tc-del">
+            <div class="tc-label">Ign. Delay</div>
+            <div class="tc-value warn" id="out-delay">--</div>
+            <span class="tc-unit">ms</span>
+          </div>
+          <div class="status-badge-lg standby" id="out-status">◈ SYSTEM STANDBY</div>
+        </div>
+      </div>
 
-        function drawGraph() {
-            gCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
-            
-            // Grid lines
-            gCtx.strokeStyle = '#30363d';
-            gCtx.lineWidth = 1;
-            gCtx.beginPath(); gCtx.moveTo(0, graphCanvas.height/2); gCtx.lineTo(graphCanvas.width, graphCanvas.height/2); gCtx.stroke();
-            
-            if (graphData.length === 0) return;
+      <div class="glass">
+        <div class="panel-title">Sequence Commands</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ignite" id="btn-ignite" onclick="initIgnition()">⚡ INITIATE IGNITION</button>
+          <button class="btn btn-reset"  id="btn-reset"  onclick="resetSystem()">↺ RESET SYSTEM</button>
+        </div>
+      </div>
 
-            gCtx.strokeStyle = '#ff7b72';
-            gCtx.lineWidth = 2;
-            gCtx.beginPath();
-            
-            let maxTemp = Math.max(...graphData, 100);
-            
-            for(let i=0; i<graphData.length; i++) {
-                let x = (i / 100) * graphCanvas.width; // 100 ticks width
-                let y = graphCanvas.height - ((graphData[i] / maxTemp) * (graphCanvas.height - 10));
-                if(i===0) gCtx.moveTo(x, y);
-                else gCtx.lineTo(x, y);
-            }
-            gCtx.stroke();
-        }
+    </div><div id="right-panel">
 
-        function loop() {
-            drawEnvironment();
-            
-            // Update Graph logic
-            if (isInjecting) {
-                timeStep++;
-                if (timeStep < 20) {
-                    graphData.push(20); // Ambient before impingement
-                } else if (isBurning && timeStep < 40) {
-                    // Huge spike
-                    let val = graphData[graphData.length-1] + 150;
-                    graphData.push(val);
-                } else if (isBurning) {
-                    // Plateau
-                    let val = graphData[graphData.length-1] + (Math.random()*20 - 10);
-                    graphData.push(val);
-                }
-                
-                if(graphData.length > 100) graphData.shift();
-                drawGraph();
-            }
-            
-            requestAnimationFrame(loop);
-        }
+      <div class="glass" id="sim-wrap" style="padding:0;overflow:hidden;">
+        <canvas id="simCanvas"></canvas>
+        <div class="cam-badge"><span class="rec-dot"></span>CAM-01 · STATIC TEST BED</div>
+        <div class="zoom-controls">
+          <button class="zoom-btn" onclick="zoomIn()">+</button>
+          <button class="zoom-btn" onclick="zoomOut()">-</button>
+        </div>
+      </div>
 
-        function ignite() {
-            let kmno4 = parseFloat(document.getElementById('kmno4').value);
-            let ethanol = parseFloat(document.getElementById('ethanol').value);
-            
-            if(kmno4 > 0 && ethanol > 0) {
-                document.getElementById('btn-ignite').disabled = true;
-                
-                // Math
-                let peakTemp = Math.round(750 + (kmno4 * 65) + (ethanol * 1.5)); 
-                let residueWeight = (kmno4 * 0.88).toFixed(2);
-                
-                // Reset State
-                particles = [];
-                graphData = [20];
-                timeStep = 0;
-                streams.y = 20;
-                streams.active = true;
-                isInjecting = true;
-                isBurning = false;
-                
-                document.getElementById('out-status').innerText = "INJECTING";
-                document.getElementById('out-status').style.color = "#79c0ff";
+      <div id="bottom-row">
 
-                // Stop injection after 1.5s
-                setTimeout(() => {
-                    streams.active = false;
-                    document.getElementById('out-temp').innerText = peakTemp + " °C";
-                    document.getElementById('out-res').innerText = residueWeight + " g";
-                    document.getElementById('out-delay').innerText = "1.2 ms";
-                    document.getElementById('out-status').innerText = "EXOTHERMIC";
-                    document.getElementById('out-status').style.color = "#ff7b72";
-                }, 1500);
+        <div class="glass">
+          <div class="panel-title">Thermal Response — T vs t</div>
+          <canvas id="graphCanvas"></canvas>
+          <div class="graph-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--neon-red)"></div>TEMPERATURE</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--neon-blue)"></div>PRESSURE</div>
+          </div>
+        </div>
 
-                // End burn after 3s
-                setTimeout(() => {
-                    isBurning = false;
-                    isInjecting = false;
-                    document.getElementById('btn-ignite').disabled = false;
-                    document.getElementById('btn-ignite').innerText = "RE-ARM SYSTEM";
-                    document.getElementById('badge').innerText = "TEST COMPLETE";
-                    document.getElementById('badge').style.color = "#8b949e";
-                    document.getElementById('badge').style.borderColor = "#8b949e";
-                    document.getElementById('badge').style.background = "transparent";
-                }, 3000);
-            }
-        }
+        <div class="glass">
+          <div class="panel-title">Data Stream Log <span class="cursor-blink"></span></div>
+          <div id="log-terminal">
+            <div class="log-line log-dim">// HGRS-7 INIT COMPLETE</div>
+            <div class="log-line log-dim">// AWAITING IGNITION COMMAND...</div>
+          </div>
+        </div>
 
-        // Start render loop
-        loop();
-        drawGraph();
-    </script>
+      </div>
+    </div></div><div id="footer">
+    <p>Copyright © 2026 <span class="highlight">Samarth Rajendra Kulkarni</span>. All rights reserved.</p>
+    <p>This simulator is dedicated to the <span class="highlight">Aerospace Engineering Department at Amity University Mumbai</span>.</p>
+    <p>Thank you for your continuous support throughout the final year of our B.Tech project.</p>
+    <div class="visitor-badge">VISITOR COUNT: <span id="visitor-count">0</span></div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   HGRS-7 Hypergolic Reaction Telemetry Simulator
+   Horizontal Test Bed Configuration
+═══════════════════════════════════════════════════════ */
+
+// Visitor Count Logic
+let visitCount = localStorage.getItem('hgrs_visitor_count') || 0;
+visitCount++;
+localStorage.setItem('hgrs_visitor_count', visitCount);
+document.getElementById('visitor-count').textContent = visitCount.toLocaleString();
+
+// ── DOM refs ─────────────────────────────────────────
+const simCanvas   = document.getElementById('simCanvas');
+const ctx         = simCanvas.getContext('2d');
+const graphCanvas = document.getElementById('graphCanvas');
+const gCtx        = graphCanvas.getContext('2d');
+const logEl       = document.getElementById('log-terminal');
+
+// ── Sliders ──────────────────────────────────────────
+const sKmno4   = document.getElementById('s-kmno4');
+const sH2so4   = document.getElementById('s-h2so4');
+const sEthanol = document.getElementById('s-ethanol');
+
+[sKmno4, sH2so4, sEthanol].forEach(s => {
+  s.addEventListener('input', () => {
+    updateSliderDisplay();
+    computeTargetTelemetry();
+  });
+});
+
+function updateSliderDisplay() {
+  const km  = parseFloat(sKmno4.value);
+  const h2  = parseFloat(sH2so4.value);
+  const et  = parseFloat(sEthanol.value);
+  document.getElementById('v-kmno4').textContent   = km.toFixed(1);
+  document.getElementById('v-h2so4').textContent   = h2.toFixed(1);
+  document.getElementById('v-ethanol').textContent = et.toFixed(1);
+  document.getElementById('f-kmno4').style.width   = ((km-1)/19*100)+'%';
+  document.getElementById('f-h2so4').style.width   = ((h2-2)/28*100)+'%';
+  document.getElementById('f-ethanol').style.width = ((et-5)/45*100)+'%';
+}
+updateSliderDisplay();
+
+// ── Telemetry targets ────────────────────────────────
+let targetTemp = 0, targetPres = 0, targetRes = 0, targetDelay = 0;
+function computeTargetTelemetry() {
+  const km = parseFloat(sKmno4.value);
+  const h2 = parseFloat(sH2so4.value);
+  const et = parseFloat(sEthanol.value);
+  targetTemp  = (600 + km*65 + h2*8 + et*2);
+  targetPres  = (1.0 + km*0.22 + h2*0.09);
+  targetRes   = km * 0.88;
+  targetDelay = Math.max(80, 600 / (km + h2*0.5));
+}
+computeTargetTelemetry();
+
+// ── Simulation state ─────────────────────────────────
+let simRunning    = false;
+let simTime       = 0;         // seconds into reaction
+let burnDuration  = 0;
+let particles     = [];
+let graphTemp     = [];
+let graphPres     = [];
+let graphTimes    = [];
+let zoom          = 1.0;
+let shakeX        = 0, shakeY = 0;
+let flashAlpha    = 0;
+let bgGlow        = 0;
+let streamProgress= 0;         // 0..1 stream injecting
+let ignitionFired = false;
+let injectionActive = false;
+let missionStarted  = false;
+let missionT        = 0;
+let rafId;
+
+// ── Resize canvases ───────────────────────────────────
+function resizeCanvases() {
+  simCanvas.width   = simCanvas.offsetWidth;
+  simCanvas.height  = simCanvas.offsetHeight;
+  graphCanvas.width  = graphCanvas.offsetWidth;
+  graphCanvas.height = graphCanvas.offsetHeight;
+}
+resizeCanvases();
+window.addEventListener('resize', () => { resizeCanvases(); });
+
+// ── AUDIO ─────────────────────────────────────────────
+let audioCtx = null;
+let burnNode = null, gainNode = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playIgnitionBurst() {
+  ensureAudio();
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.4, audioCtx.sampleRate);
+  const d   = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    d[i] = (Math.random()*2-1) * Math.exp(-i / (audioCtx.sampleRate * 0.12));
+  }
+  const src = audioCtx.createBufferSource();
+  const g   = audioCtx.createGain();
+  const fil = audioCtx.createBiquadFilter();
+  fil.type = 'bandpass'; fil.frequency.value = 200; fil.Q.value = 0.5;
+  src.buffer = buf;
+  src.connect(fil); fil.connect(g); g.connect(audioCtx.destination);
+  g.gain.value = 1.2;
+  src.start();
+}
+
+function startBurnAudio() {
+  ensureAudio();
+  if (burnNode) { try { burnNode.stop(); } catch(e){} }
+  const bufLen = audioCtx.sampleRate * 2;
+  const buf    = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const d      = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) d[i] = Math.random()*2-1;
+  burnNode = audioCtx.createBufferSource();
+  burnNode.buffer = buf;
+  burnNode.loop   = true;
+  gainNode = audioCtx.createGain();
+  const fil = audioCtx.createBiquadFilter();
+  fil.type = 'lowpass'; fil.frequency.value = 120;
+  burnNode.connect(fil); fil.connect(gainNode); gainNode.connect(audioCtx.destination);
+  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.5);
+  burnNode.start();
+}
+
+function stopBurnAudio() {
+  if (!gainNode || !burnNode) return;
+  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+  setTimeout(() => { try { burnNode.stop(); } catch(e){} burnNode = null; }, 1600);
+}
+
+// ── PARTICLE CLASS ────────────────────────────────────
+class Particle {
+  constructor(x, y, type, intensity) {
+    this.x    = x; this.y = y; this.type = type;
+    this.life = 1.0;
+    intensity = intensity || 1;
+
+    // HORIZONTAL MOTION (vx dominates)
+    if (type === 'core') {          // bright white/yellow core
+      this.vx   = (Math.random()*12+6)*intensity;
+      this.vy   = (Math.random()-0.5)*4;
+      this.size = Math.random()*6+3;
+      this.decay= Math.random()*0.04+0.025;
+      this.hue  = Math.random()*40+40; // yellow-white
+    } else if (type === 'flame') {  // orange/red body
+      this.vx   = (Math.random()*10+4)*intensity;
+      this.vy   = (Math.random()-0.5)*8;
+      this.size = Math.random()*14+5;
+      this.decay= Math.random()*0.03+0.02;
+      this.hue  = Math.random()*30+10; // red-orange
+    } else if (type === 'smoke') {  // dark grey expanding
+      this.vx   = (Math.random()*4+2);
+      this.vy   = (Math.random()-0.5)*4;
+      this.size = Math.random()*18+10;
+      this.decay= Math.random()*0.008+0.005;
+      this.gray = Math.floor(Math.random()*40+20);
+    } else {                        // sparks (directed right)
+      const spd = Math.random()*16+8;
+      const ang = (Math.random()-0.5)*1.2; // roughly -35 to +35 degrees
+      this.vx   = Math.cos(ang)*spd;
+      this.vy   = Math.sin(ang)*spd;
+      this.size = Math.random()*2+1;
+      this.decay= Math.random()*0.06+0.04;
+      this.hue  = Math.random()*60+20;
+      this.trail= [];
+    }
+  }
+
+  update() {
+    if (this.type === 'spark') this.trail.push({x:this.x, y:this.y});
+    if (this.trail && this.trail.length > 8) this.trail.shift();
+
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life -= this.decay;
+
+    // Horizontal drag for flames/cores
+    if (this.type === 'flame' || this.type === 'core') this.vx *= 0.98;
+    if (this.type === 'smoke') { this.size += 0.6; this.vy += (Math.random()-0.5)*0.3; }
+    if (this.type === 'spark') { this.vy += 0.35; this.vx *= 0.99; }
+  }
+
+  draw(c) {
+    if (this.life <= 0) return;
+    const a = Math.max(0, this.life);
+
+    if (this.type === 'core') {
+      c.save();
+      c.globalAlpha = a * 0.9;
+      const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+      g.addColorStop(0, `hsl(${this.hue}, 100%, 98%)`);
+      g.addColorStop(0.4, `hsl(${this.hue}, 100%, 80%)`);
+      g.addColorStop(1, `hsla(${this.hue}, 100%, 60%, 0)`);
+      c.fillStyle = g;
+      c.shadowBlur = 20; c.shadowColor = `hsl(${this.hue}, 100%, 80%)`;
+      c.beginPath(); c.arc(this.x, this.y, this.size, 0, Math.PI*2); c.fill();
+      c.restore();
+
+    } else if (this.type === 'flame') {
+      c.save();
+      c.globalAlpha = a * 0.7;
+      const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+      g.addColorStop(0, `hsl(${this.hue+20}, 100%, 70%)`);
+      g.addColorStop(0.5, `hsl(${this.hue}, 100%, 45%)`);
+      g.addColorStop(1, `hsla(${this.hue}, 100%, 25%, 0)`);
+      c.fillStyle = g;
+      c.shadowBlur = 14; c.shadowColor = `hsl(${this.hue}, 100%, 50%)`;
+      c.beginPath(); c.arc(this.x, this.y, this.size, 0, Math.PI*2); c.fill();
+      c.restore();
+
+    } else if (this.type === 'smoke') {
+      c.save();
+      c.globalAlpha = a * 0.25;
+      c.fillStyle = `rgb(${this.gray},${this.gray},${this.gray})`;
+      c.beginPath(); c.arc(this.x, this.y, this.size, 0, Math.PI*2); c.fill();
+      c.restore();
+
+    } else { // spark
+      if (this.trail && this.trail.length > 1) {
+        c.save();
+        c.strokeStyle = `hsl(${this.hue}, 100%, 70%)`;
+        c.lineWidth   = this.size * 0.5;
+        c.lineCap     = 'round';
+        c.globalAlpha = a * 0.8;
+        c.shadowBlur  = 6; c.shadowColor = `hsl(${this.hue}, 100%, 80%)`;
+        c.beginPath();
+        c.moveTo(this.trail[0].x, this.trail[0].y);
+        this.trail.forEach(p => c.lineTo(p.x, p.y));
+        c.lineTo(this.x, this.y);
+        c.stroke();
+        c.restore();
+      }
+    }
+  }
+}
+
+// ── GRAPH draw ────────────────────────────────────────
+function drawGraph() {
+  const W = graphCanvas.width, H = graphCanvas.height;
+  gCtx.clearRect(0, 0, W, H);
+
+  // Background
+  gCtx.fillStyle = 'rgba(0,4,10,0.5)';
+  gCtx.fillRect(0, 0, W, H);
+
+  // Grid
+  gCtx.strokeStyle = 'rgba(0,200,255,0.07)'; gCtx.lineWidth = 1;
+  for (let x = 0; x < W; x += W/6) {
+    gCtx.beginPath(); gCtx.moveTo(x, 0); gCtx.lineTo(x, H); gCtx.stroke();
+  }
+  for (let y = 0; y < H; y += H/4) {
+    gCtx.beginPath(); gCtx.moveTo(0, y); gCtx.lineTo(W, y); gCtx.stroke();
+  }
+
+  if (graphTemp.length < 2) return;
+
+  const maxT  = Math.max(...graphTemp, 100);
+  const maxP  = Math.max(...graphPres, 2);
+  const steps = graphTemp.length;
+
+  // Temperature curve (red glow)
+  gCtx.save();
+  gCtx.shadowBlur = 12; gCtx.shadowColor = 'rgba(255,34,68,0.8)';
+  gCtx.strokeStyle = '#ff4466'; gCtx.lineWidth = 2.5;
+  gCtx.beginPath();
+  for (let i = 0; i < steps; i++) {
+    const x = (i / (steps-1)) * W;
+    const y = H - (graphTemp[i] / maxT) * (H - 10) - 5;
+    i === 0 ? gCtx.moveTo(x, y) : gCtx.lineTo(x, y);
+  }
+  gCtx.stroke();
+
+  // Fill under T curve
+  gCtx.strokeStyle = 'transparent';
+  gCtx.globalAlpha = 0.12;
+  gCtx.fillStyle   = '#ff4466';
+  const firstX = 0, lastX = ((steps-1)/(steps-1))*W;
+  const lastY  = H - (graphTemp[steps-1]/maxT)*(H-10)-5;
+  gCtx.lineTo(lastX, H); gCtx.lineTo(firstX, H);
+  gCtx.closePath(); gCtx.fill();
+  gCtx.restore();
+
+  // Pressure curve (blue)
+  gCtx.save();
+  gCtx.shadowBlur = 8; gCtx.shadowColor = 'rgba(0,200,255,0.6)';
+  gCtx.strokeStyle = '#00c8ff'; gCtx.lineWidth = 1.5;
+  gCtx.setLineDash([4, 4]);
+  gCtx.beginPath();
+  for (let i = 0; i < steps; i++) {
+    const x = (i / (steps-1)) * W;
+    const y = H - (graphPres[i] / maxP) * (H - 10) - 5;
+    i === 0 ? gCtx.moveTo(x, y) : gCtx.lineTo(x, y);
+  }
+  gCtx.stroke();
+  gCtx.restore();
+
+  // Y-axis label (max temp)
+  gCtx.fillStyle = 'rgba(255,68,102,0.7)';
+  gCtx.font      = '9px Share Tech Mono';
+  gCtx.fillText(Math.round(maxT)+'°C', 4, 14);
+}
+
+// ── SIMULATION DRAW ───────────────────────────────────
+function drawSim() {
+  const W = simCanvas.width, H = simCanvas.height;
+  const cx = W/2 + shakeX, cy = H/2 + shakeY;
+
+  ctx.save();
+  ctx.clearRect(0, 0, W, H);
+
+  // Apply zoom + camera shake
+  ctx.translate(cx, cy);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-cx, -cy);
+
+  // Background dynamic glow based on exhaust path
+  if (bgGlow > 0) {
+    const g = ctx.createRadialGradient(cx+50, cy, 0, cx+50, cy, W*0.4);
+    g.addColorStop(0, `rgba(255,80,0,${bgGlow*0.15})`);
+    g.addColorStop(0.5, `rgba(255,30,0,${bgGlow*0.07})`);
+    g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.fillRect(-W, -H, W*3, H*3);
+  }
+
+  // ── Horizontal Chamber Coordinates ──
+  const chamL = cx - 80, chamR = cx + 60;
+  const chamTop = cy - 35, chamBot = cy + 35;
+
+  // Draw injector pipes entering from the left
+  function drawPipe(x1, y1, x2, y2, col) {
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth   = 6;
+    ctx.shadowBlur  = 12; ctx.shadowColor = col;
+    ctx.lineCap     = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x2, y2, 6, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.restore();
+  }
+  
+  // Oxidizer (top-left) & Fuel (bottom-left)
+  drawPipe(cx-200, cy-35, chamL+5, cy-15, '#cc66ff');
+  drawPipe(cx-200, cy+35, chamL+5, cy+15, '#00eeff');
+
+  // Injector labels
+  ctx.save();
+  ctx.font='9px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(200,100,255,0.6)'; ctx.fillText('OX', cx-180, cy-45);
+  ctx.fillStyle='rgba(0,238,255,0.6)';   ctx.fillText('FU', cx-180, cy+52);
+  ctx.restore();
+
+  // ── Reaction Chamber ──
+  ctx.save();
+  // Chamber body (Horizontal Tube)
+  const chamGrad = ctx.createLinearGradient(0, chamTop, 0, chamBot);
+  chamGrad.addColorStop(0, '#1a2840');
+  chamGrad.addColorStop(0.5,'#243050');
+  chamGrad.addColorStop(1, '#1a2840');
+  ctx.fillStyle   = chamGrad;
+  ctx.strokeStyle = 'rgba(0,200,255,0.4)';
+  ctx.lineWidth   = 2;
+  ctx.shadowBlur  = ignitionFired ? 20 : 8;
+  ctx.shadowColor = ignitionFired ? 'rgba(255,80,0,0.5)' : 'rgba(0,200,255,0.3)';
+  
+  // Left side closed/rounded, right side open
+  ctx.beginPath();
+  ctx.moveTo(chamL+15, chamTop);
+  ctx.lineTo(chamR, chamTop);
+  ctx.lineTo(chamR, chamBot);
+  ctx.lineTo(chamL+15, chamBot);
+  ctx.arcTo(chamL, chamBot, chamL, chamBot-15, 15);
+  ctx.arcTo(chamL, chamTop, chamL+15, chamTop, 15);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Bolt details on horizontal chamber
+  [chamL+25, chamL+60, chamL+95, chamL+130].forEach(x => {
+    [chamTop+8, chamBot-8].forEach(y => {
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+      ctx.fillStyle='rgba(100,160,200,0.5)'; ctx.fill();
+    });
+  });
+  ctx.restore();
+
+  // Nozzle exit glow (thrust out the right)
+  if (ignitionFired && bgGlow > 0) {
+    ctx.save();
+    const ng = ctx.createRadialGradient(chamR, cy, 0, chamR, cy, 100);
+    ng.addColorStop(0, `rgba(255,200,50,${bgGlow*0.6})`);
+    ng.addColorStop(0.4,`rgba(255,100,0,${bgGlow*0.3})`);
+    ng.addColorStop(1,   'transparent');
+    ctx.fillStyle = ng;
+    ctx.beginPath(); ctx.arc(chamR, cy, 100, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Reactant streams (Injecting inwards to meet at impingement point) ──
+  if (injectionActive && streamProgress < 1) {
+    const t = Math.min(streamProgress, 1);
+    const impX = cx - 35; // Center point where they crash
+    
+    // X distance progresses towards center
+    const ex = (chamL+5) + (impX - (chamL+5)) * t; 
+
+    // Left stream (oxidizer, purple)
+    const eyOx = (cy-15) + (cy - (cy-15)) * t;
+    ctx.save();
+    ctx.strokeStyle = '#cc66ff'; ctx.lineWidth = 3;
+    ctx.shadowBlur  = 10; ctx.shadowColor = '#cc66ff';
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.moveTo(chamL+5, cy-15); ctx.lineTo(ex, eyOx); ctx.stroke();
+    ctx.setLineDash([]);
+    // Droplets
+    for (let i=0; i<3; i++) {
+      const p = (t*3+i*0.33)%1;
+      const dx = (chamL+5) + (ex - (chamL+5)) * p;
+      const dy = (cy-15) + (eyOx - (cy-15)) * p;
+      ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI*2);
+      ctx.fillStyle='rgba(200,100,255,0.8)'; ctx.fill();
+    }
+    ctx.restore();
+
+    // Right stream (fuel, cyan)
+    const eyFu = (cy+15) + (cy - (cy+15)) * t;
+    ctx.save();
+    ctx.strokeStyle = '#00eeff'; ctx.lineWidth = 3;
+    ctx.shadowBlur  = 10; ctx.shadowColor = '#00eeff';
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.moveTo(chamL+5, cy+15); ctx.lineTo(ex, eyFu); ctx.stroke();
+    ctx.setLineDash([]);
+    // Droplets
+    for (let i=0; i<3; i++) {
+      const p = (t*3+i*0.33)%1;
+      const dx = (chamL+5) + (ex - (chamL+5)) * p;
+      const dy = (cy+15) + (eyFu - (cy+15)) * p;
+      ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI*2);
+      ctx.fillStyle='rgba(0,238,255,0.8)'; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Particles ──
+  particles.forEach(p => { p.update(); p.draw(ctx); });
+  particles = particles.filter(p => p.life > 0);
+
+  // ── Ignition Flash ──
+  if (flashAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = flashAlpha;
+    const fg = ctx.createRadialGradient(cx-30, cy, 0, cx-30, cy, 200);
+    fg.addColorStop(0, 'rgba(255,255,255,0.9)');
+    fg.addColorStop(0.3,'rgba(255,230,100,0.5)');
+    fg.addColorStop(1, 'transparent');
+    ctx.fillStyle = fg;
+    ctx.fillRect(-W, -H, W*3, H*3);
+    ctx.restore();
+    flashAlpha = Math.max(0, flashAlpha - 0.06);
+  }
+
+  // ── HUD Overlay ──
+  ctx.save();
+  ctx.font = '9px Share Tech Mono';
+  // Corner brackets
+  const bsz = 16;
+  [[10,10],[W-10,10],[10,H-10],[W-10,H-10]].forEach(([bx,by],i) => {
+    ctx.strokeStyle = 'rgba(0,200,255,0.35)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (i===0||i===2) { ctx.moveTo(bx, by+bsz*(i<2?1:-1)); ctx.lineTo(bx, by); ctx.lineTo(bx+bsz, by); }
+    else               { ctx.moveTo(bx-bsz, by); ctx.lineTo(bx, by); ctx.lineTo(bx, by+bsz*(i<2?1:-1)); }
+    ctx.stroke();
+  });
+  // Status text bottom-right
+  ctx.fillStyle = 'rgba(0,200,255,0.4)';
+  ctx.textAlign = 'right';
+  ctx.fillText(`ZOOM: ${zoom.toFixed(1)}x`, W-14, H-14);
+  ctx.textAlign = 'left';
+  ctx.fillText(`SIM-T: ${simTime.toFixed(2)}s`, 14, H-14);
+  ctx.restore();
+
+  ctx.restore(); // main save
+}
+
+// ── SPAWN particles ───────────────────────────────────
+function spawnParticles(cx, cy, intensity) {
+  // Impingement origin point (where injectors meet)
+  const ox = cx - 35, oy = cy; 
+  const n  = 12;
+
+  // Core blast
+  for (let i=0; i<n; i++)   particles.push(new Particle(ox, oy, 'core',  intensity));
+  // Flames carrying momentum out the right
+  for (let i=0; i<n*2; i++) particles.push(new Particle(ox, oy, 'flame', intensity));
+  // Smoke expanding outward
+  for (let i=0; i<3; i++)   particles.push(new Particle(ox, oy, 'smoke', intensity));
+  // Sparks shooting out
+  for (let i=0; i<4; i++)   particles.push(new Particle(ox, oy, 'spark', intensity));
+
+  // Extra nozzle exhaust generated exactly at the exit ring (chamR)
+  const nx = cx + 60; 
+  for (let i=0; i<n; i++) {
+    const p = new Particle(nx, oy+(Math.random()-0.5)*40, 'flame', intensity*0.8);
+    p.vx = Math.abs(p.vx) * 1.8; // High velocity pushing right
+    particles.push(p);
+  }
+}
+
+// ── MISSION CLOCK ─────────────────────────────────────
+function formatClock(sec) {
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+  return `T+${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ── LOG ───────────────────────────────────────────────
+function addLog(msg, cls='') {
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  div.textContent = msg;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ── TELEMETRY update ──────────────────────────────────
+function updateTelemDisplay(T, P) {
+  document.getElementById('out-temp').textContent  = T.toFixed(0);
+  document.getElementById('out-pres').textContent  = P.toFixed(2);
+}
+
+// ── STATUS badge ──────────────────────────────────────
+function setStatus(text, cls) {
+  const el = document.getElementById('out-status');
+  el.className = 'status-badge-lg ' + cls;
+  el.textContent = text;
+}
+
+// ── LEDS ─────────────────────────────────────────────
+function setLed(id, cls) {
+  const el = document.getElementById(id);
+  el.className = 'led ' + cls;
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────
+let lastT = 0;
+const REACTION_DURATION = 5.0; // seconds
+
+function mainLoop(now) {
+  const dt = Math.min((now - lastT) / 1000, 0.05);
+  lastT = now;
+
+  // Mission clock
+  if (missionStarted) {
+    missionT += dt;
+    document.getElementById('mission-clock').textContent = formatClock(missionT);
+  }
+
+  // Camera shake decay
+  shakeX *= 0.85; shakeY *= 0.85;
+  if (Math.abs(shakeX)<0.1) shakeX=0;
+  if (Math.abs(shakeY)<0.1) shakeY=0;
+
+  const W = simCanvas.width, H = simCanvas.height;
+  const cx = W/2, cy = H/2;
+
+  // Run simulation step
+  if (simRunning) {
+    simTime += dt;
+
+    // Physics: T(t) = Tmax*(1-exp(-k*t))
+    const k   = 1.2 + parseFloat(sKmno4.value)*0.06;
+    const T   = targetTemp * (1 - Math.exp(-k * simTime));
+    const P   = targetPres * (1 - Math.exp(-k*0.8 * simTime)) + (Math.random()-0.5)*0.04;
+    const int = Math.min(simTime/0.5, 1);
+
+    bgGlow = int * Math.min(1, (REACTION_DURATION - simTime)/REACTION_DURATION + 0.2);
+    spawnParticles(cx, cy, int);
+
+    updateTelemDisplay(T, P);
+    graphTemp.push(T);
+    graphPres.push(P);
+    graphTimes.push(simTime);
+
+    // Log line every 0.4s
+    if (graphTemp.length % 24 === 0) {
+      addLog(`t=${simTime.toFixed(1)}s | T=${T.toFixed(0)}°C | P=${P.toFixed(2)}bar`,
+              T > targetTemp*0.8 ? 'log-error' : T > targetTemp*0.5 ? 'log-warn' : '');
+    }
+
+    // Keep graph to 200 pts
+    if (graphTemp.length > 200) { graphTemp.shift(); graphPres.shift(); graphTimes.shift(); }
+
+    drawGraph();
+
+    // Reaction ends
+    if (simTime >= REACTION_DURATION) {
+      endReaction();
+    }
+  }
+
+  drawSim();
+  rafId = requestAnimationFrame(mainLoop);
+}
+
+// ── INITIATE IGNITION ─────────────────────────────────
+function initIgnition() {
+  if (simRunning) return;
+  document.getElementById('btn-ignite').disabled = true;
+
+  computeTargetTelemetry();
+  missionStarted = true;
+  injectionActive = true;
+  streamProgress  = 0;
+
+  const led = document.getElementById('led-data');
+  setLed('led-data','green');
+  setStatus('◈ INJECTION ACTIVE', 'injecting');
+  setLed('led-ign','amber');
+  addLog('// IGNITION SEQUENCE INITIATED', 'log-bright');
+
+  // Animate stream dropping
+  const streamAnim = setInterval(() => {
+    streamProgress += 0.05;
+    if (streamProgress >= 1) {
+      clearInterval(streamAnim);
+      injectionActive = false;
+      onImpingement();
+    }
+  }, 30);
+
+  // Kick off render loop
+  if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(mainLoop); }
+}
+
+function onImpingement() {
+  // Fire!
+  simRunning    = true;
+  simTime       = 0;
+  ignitionFired = true;
+  flashAlpha    = 1.0;
+
+  // Camera shake
+  shakeX = (Math.random()-0.5)*22;
+  shakeY = (Math.random()-0.5)*14;
+
+  // Shockwave element
+  const sw = document.createElement('div');
+  sw.className = 'shockwave';
+  const rect = document.getElementById('sim-wrap').getBoundingClientRect();
+  sw.style.left = (rect.width/2 - 35) + 'px';
+  sw.style.top  = (rect.height/2) + 'px';
+  document.getElementById('sim-wrap').appendChild(sw);
+  setTimeout(() => sw.remove(), 700);
+
+  setStatus('🔥 EXOTHERMIC REACTION', 'burning');
+  setLed('led-ign','red');
+  addLog(`// IGNITION @ t=0.0s`, 'log-bright');
+  addLog(`// TARGET TEMP: ${targetTemp.toFixed(0)}°C | PRESS: ${targetPres.toFixed(2)}bar`, '');
+
+  // Telemetry static values
+  document.getElementById('out-res').textContent   = (parseFloat(sKmno4.value)*0.88).toFixed(2);
+  document.getElementById('out-delay').textContent = Math.round(targetDelay);
+  document.getElementById('tc-del').classList.add('active');
+  document.getElementById('tc-res').classList.add('active');
+  document.getElementById('tc-temp').classList.add('active','hot');
+  document.getElementById('tc-pres').classList.add('active');
+
+  playIgnitionBurst();
+  setTimeout(startBurnAudio, 300);
+
+  bgGlow = 1.0;
+}
+
+function endReaction() {
+  simRunning = false;
+  bgGlow     = 0;
+  stopBurnAudio();
+  setLed('led-ign', 'green');
+
+  setStatus('✓ SEQUENCE COMPLETE', 'complete');
+  addLog(`// BURN COMPLETE | Peak: ${targetTemp.toFixed(0)}°C | P: ${targetPres.toFixed(2)}bar`, 'log-bright');
+  addLog('// DATA LOGGED.', 'log-dim');
+
+  document.getElementById('btn-ignite').disabled = false;
+  document.getElementById('btn-ignite').textContent = '⚡ RE-ARM & FIRE';
+}
+
+// ── RESET ─────────────────────────────────────────────
+function resetSystem() {
+  simRunning    = false;
+  simTime       = 0;
+  bgGlow        = 0;
+  flashAlpha    = 0;
+  particles     = [];
+  graphTemp     = [];
+  graphPres     = [];
+  graphTimes    = [];
+  streamProgress= 0;
+  injectionActive = false;
+  ignitionFired   = false;
+
+  stopBurnAudio();
+  document.getElementById('btn-ignite').disabled = false;
+  document.getElementById('btn-ignite').textContent = '⚡ INITIATE IGNITION';
+  setStatus('◈ SYSTEM STANDBY', 'standby');
+  setLed('led-ign','');
+  setLed('led-data','');
+  ['tc-temp','tc-pres','tc-res','tc-del'].forEach(id => {
+    document.getElementById(id).classList.remove('active','hot','warn');
+  });
+  ['out-temp','out-pres','out-res','out-delay'].forEach(id => {
+    document.getElementById(id).textContent = '--';
+  });
+
+  logEl.innerHTML = '<div class="log-line log-dim">// SYSTEM RESET COMPLETE</div><div class="log-line log-dim">// AWAITING IGNITION COMMAND...</div>';
+  drawGraph();
+
+  if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(mainLoop); }
+}
+
+// ── ZOOM ──────────────────────────────────────────────
+function zoomIn()  { zoom = Math.min(zoom+0.15, 2.5); }
+function zoomOut() { zoom = Math.max(zoom-0.15, 0.5); }
+
+// ── START ─────────────────────────────────────────────
+setLed('led-power','green');
+lastT = performance.now();
+rafId = requestAnimationFrame(mainLoop);
+addLog('// HGRS-7 HYPERGOLIC REACTION SIM v7.4.2', 'log-bright');
+addLog('// KMnO₄ / H₂SO₄ / C₂H₅OH SURROGATE SYSTEM', 'log-dim');
+addLog('// ALL SYSTEMS NOMINAL. AWAITING COMMAND.', 'log-dim');
+</script>
 </body>
 </html>
