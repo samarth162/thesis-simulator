@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HGRS-7 | Hypergolic Reaction Telemetry System</title>
+<title>HGRS | Hypergolic Reaction Telemetry System</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
 
@@ -294,6 +294,16 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
 }
 .btn-ignite:hover { box-shadow: 0 0 40px rgba(255,34,68,0.7), inset 0 1px 0 rgba(255,255,255,0.15); }
 .btn-ignite:disabled { background: #1a1a1a; color: #333; box-shadow: none; cursor: not-allowed; }
+
+.btn-video {
+  background: rgba(200,100,255,0.1);
+  color: #cc66ff;
+  border: 1px solid rgba(200,100,255,0.3);
+  box-shadow: 0 0 12px rgba(200,100,255,0.15);
+}
+.btn-video:hover:not(:disabled) { background: rgba(200,100,255,0.2); box-shadow: 0 0 20px rgba(200,100,255,0.3); }
+.btn-video:disabled { background: rgba(255,255,255,0.02); color: #333; border-color: #222; box-shadow: none; cursor: not-allowed; }
+
 .btn-reset {
   background: rgba(0,200,255,0.08);
   color: var(--neon-blue);
@@ -498,6 +508,46 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
   100% { width:300px;height:300px;opacity:0; }
 }
 
+/* ── VIDEO MODAL ───────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(2,4,8,0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-glass {
+  background: var(--bg-panel); border: 1px solid var(--neon-blue);
+  border-radius: 12px; padding: 24px;
+  max-width: 800px; width: 90%;
+  box-shadow: 0 0 40px rgba(0,200,255,0.2);
+  position: relative; transform: scale(0.95); transition: transform 0.4s ease;
+}
+.modal-overlay.show .modal-glass { transform: scale(1); }
+.close-btn {
+  position: absolute; top: -12px; right: -12px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-deep); border: 1px solid var(--neon-blue);
+  color: var(--neon-blue); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  font-family: Arial, sans-serif; font-weight: bold;
+}
+.close-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+.video-wrapper {
+  width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,200,255,0.3);
+  background: #000; display: flex;
+}
+.video-wrapper video { width: 100%; height: auto; max-height: 60vh; outline: none; }
+.video-caption {
+  margin-top: 16px; font-family: var(--font-ui); font-size: 14px;
+  color: var(--bright-text); text-align: center; letter-spacing: 1px; line-height: 1.6;
+}
+.team-credits { color: var(--neon-cyan); font-family: var(--font-mono); font-size: 12px; display: block; margin-top: 6px; }
+
 /* ── FOOTER ────────────────────────────────────────── */
 #footer {
   margin-top: 24px;
@@ -539,7 +589,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
     <div class="logo-block">
       <div class="logo-icon">🚀</div>
       <div class="logo-text">
-        <h1>HGRS-7 TELEMETRY</h1>
+        <h1>HGRS TELEMETRY</h1>
         <p>HYPERGOLIC REACTION GROUND TEST BED · REV 7.4.2</p>
       </div>
     </div>
@@ -629,6 +679,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         <div class="panel-title">Sequence Commands</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button class="btn btn-ignite" id="btn-ignite" onclick="initIgnition()">⚡ INITIATE IGNITION</button>
+          <button class="btn btn-video"  id="btn-video"  onclick="showVideoModal()" disabled>▶ PLAY ACTUAL TEST FOOTAGE</button>
           <button class="btn btn-reset"  id="btn-reset"  onclick="resetSystem()">↺ RESET SYSTEM</button>
         </div>
       </div>
@@ -658,7 +709,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         <div class="glass">
           <div class="panel-title">Data Stream Log <span class="cursor-blink"></span></div>
           <div id="log-terminal">
-            <div class="log-line log-dim">// HGRS-7 INIT COMPLETE</div>
+            <div class="log-line log-dim">// HGRS INIT COMPLETE</div>
             <div class="log-line log-dim">// AWAITING IGNITION COMMAND...</div>
           </div>
         </div>
@@ -671,11 +722,25 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
     <div class="visitor-badge">VISITOR COUNT: <span id="visitor-count">0</span></div>
   </div>
 
+</div><div id="video-modal" class="modal-overlay">
+  <div class="modal-glass">
+    <button class="close-btn" onclick="hideVideoModal()">✕</button>
+    <div class="video-wrapper">
+      <video id="actual-test-video" controls loop>
+        <source src="actual_test_video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <div class="video-caption">
+      Actual hypergolic static test firing demonstrating spontaneous impingement ignition and sustained thrust.
+      <span class="team-credits">[Team: Ayush Ghatkamble, Sanskriti Singh, Samarth Kulkarni]</span>
+    </div>
+  </div>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   HGRS-7 Hypergolic Reaction Telemetry Simulator
+   HGRS Hypergolic Reaction Telemetry Simulator
    Horizontal Test Bed Configuration
 ═══════════════════════════════════════════════════════ */
 
@@ -1286,6 +1351,7 @@ function mainLoop(now) {
 function initIgnition() {
   if (simRunning) return;
   document.getElementById('btn-ignite').disabled = true;
+  document.getElementById('btn-video').disabled = true;
 
   computeTargetTelemetry();
   missionStarted = true;
@@ -1359,10 +1425,13 @@ function endReaction() {
 
   setStatus('✓ SEQUENCE COMPLETE', 'complete');
   addLog(`// BURN COMPLETE | Peak: ${targetTemp.toFixed(0)}°C | P: ${targetPres.toFixed(2)}bar`, 'log-bright');
-  addLog('// DATA LOGGED.', 'log-dim');
+  addLog('// DATA LOGGED. TEST FOOTAGE UNLOCKED.', 'log-dim');
 
   document.getElementById('btn-ignite').disabled = false;
   document.getElementById('btn-ignite').textContent = '⚡ RE-ARM & FIRE';
+  
+  // Enable Video Button
+  document.getElementById('btn-video').disabled = false;
 }
 
 // ── RESET ─────────────────────────────────────────────
@@ -1382,6 +1451,8 @@ function resetSystem() {
   stopBurnAudio();
   document.getElementById('btn-ignite').disabled = false;
   document.getElementById('btn-ignite').textContent = '⚡ INITIATE IGNITION';
+  document.getElementById('btn-video').disabled = true; // Disable video until next successful burn
+
   setStatus('◈ SYSTEM STANDBY', 'standby');
   setLed('led-ign','');
   setLed('led-data','');
@@ -1398,6 +1469,20 @@ function resetSystem() {
   if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(mainLoop); }
 }
 
+// ── MODAL CONTROLS ────────────────────────────────────
+function showVideoModal() {
+  document.getElementById('video-modal').classList.add('show');
+  const vid = document.getElementById('actual-test-video');
+  vid.currentTime = 0;
+  vid.play().catch(e => console.log('Autoplay prevented by browser'));
+}
+
+function hideVideoModal() {
+  document.getElementById('video-modal').classList.remove('show');
+  const vid = document.getElementById('actual-test-video');
+  vid.pause();
+}
+
 // ── ZOOM ──────────────────────────────────────────────
 function zoomIn()  { zoom = Math.min(zoom+0.15, 2.5); }
 function zoomOut() { zoom = Math.max(zoom-0.15, 0.5); }
@@ -1406,7 +1491,7 @@ function zoomOut() { zoom = Math.max(zoom-0.15, 0.5); }
 setLed('led-power','green');
 lastT = performance.now();
 rafId = requestAnimationFrame(mainLoop);
-addLog('// HGRS-7 HYPERGOLIC REACTION SIM v7.4.2', 'log-bright');
+addLog('// HGRS HYPERGOLIC REACTION SIM v7.4.2', 'log-bright');
 addLog('// KMnO₄ / H₂SO₄ / C₂H₅OH SURROGATE SYSTEM', 'log-dim');
 addLog('// ALL SYSTEMS NOMINAL. AWAITING COMMAND.', 'log-dim');
 </script>
