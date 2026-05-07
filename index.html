@@ -508,7 +508,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
   100% { width:300px;height:300px;opacity:0; }
 }
 
-/* ── VIDEO MODAL ───────────────────────────────────── */
+/* ── MODALS (VIDEO & DISCLAIMER) ───────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: rgba(2,4,8,0.9);
@@ -537,6 +537,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
   font-family: Arial, sans-serif; font-weight: bold;
 }
 .close-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+
 .video-wrapper {
   width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,200,255,0.3);
   background: #000; display: flex;
@@ -547,6 +548,26 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
   color: var(--bright-text); text-align: center; letter-spacing: 1px; line-height: 1.6;
 }
 .team-credits { color: var(--neon-cyan); font-family: var(--font-mono); font-size: 12px; display: block; margin-top: 6px; }
+
+/* Disclaimer Modal Specifics */
+#disclaimer-modal .modal-glass { border-color: var(--neon-amber); box-shadow: 0 0 40px rgba(255,170,0,0.15); max-width: 650px; }
+#disclaimer-modal .close-btn { border-color: var(--neon-amber); color: var(--neon-amber); }
+#disclaimer-modal .close-btn:hover { background: var(--neon-amber); color: #000; box-shadow: 0 0 15px var(--neon-amber); }
+.disclaimer-title {
+  font-family: var(--font-head); color: var(--neon-amber);
+  font-size: 16px; letter-spacing: 2px; margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255,170,0,0.3); padding-bottom: 10px;
+}
+.disclaimer-content {
+  font-family: var(--font-ui); color: var(--bright-text);
+  font-size: 14px; line-height: 1.6; max-height: 60vh; overflow-y: auto;
+  text-align: left; padding-right: 10px;
+}
+.disclaimer-list { padding-left: 20px; }
+.disclaimer-list li { margin-bottom: 12px; color: var(--mid-text); }
+.disclaimer-list strong { color: var(--neon-amber); font-weight: 600; }
+.disclaimer-content::-webkit-scrollbar { width: 4px; }
+.disclaimer-content::-webkit-scrollbar-thumb { background: rgba(255,170,0,0.3); border-radius: 2px; }
 
 /* ── FOOTER ────────────────────────────────────────── */
 #footer {
@@ -575,6 +596,25 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
   font-size: 10px;
   color: var(--neon-cyan);
 }
+.disclaimer-btn {
+  background: rgba(255,170,0,0.08);
+  border: 1px solid rgba(255,170,0,0.3);
+  color: var(--neon-amber);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+  display: inline-block;
+}
+.disclaimer-btn:hover {
+  background: rgba(255,170,0,0.15);
+  box-shadow: 0 0 12px rgba(255,170,0,0.2);
+}
 
 /* ── SCROLLBAR global ─────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
@@ -585,6 +625,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
 <body>
 <div id="app">
 
+  <!-- ── HEADER ── -->
   <div id="header">
     <div class="logo-block">
       <div class="logo-icon">🚀</div>
@@ -607,10 +648,13 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
     </div>
   </div>
 
+  <!-- ── MAIN ── -->
   <div id="main">
 
+    <!-- LEFT: Controls -->
     <div id="left-panel">
 
+      <!-- REACTANTS -->
       <div class="glass" id="reactants-panel">
         <div class="panel-title">Propellant Configuration</div>
 
@@ -648,6 +692,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         </div>
       </div>
 
+      <!-- TELEMETRY -->
       <div class="glass">
         <div class="panel-title">Live Telemetry</div>
         <div class="telem-grid">
@@ -675,6 +720,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         </div>
       </div>
 
+      <!-- BUTTONS -->
       <div class="glass">
         <div class="panel-title">Sequence Commands</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
@@ -684,8 +730,12 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         </div>
       </div>
 
-    </div><div id="right-panel">
+    </div><!-- end left-panel -->
 
+    <!-- RIGHT: Sim + Graph + Log -->
+    <div id="right-panel">
+
+      <!-- SIMULATION CANVAS -->
       <div class="glass" id="sim-wrap" style="padding:0;overflow:hidden;">
         <canvas id="simCanvas"></canvas>
         <div class="cam-badge"><span class="rec-dot"></span>CAM-01 · STATIC TEST BED</div>
@@ -695,6 +745,7 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         </div>
       </div>
 
+      <!-- GRAPH + LOG -->
       <div id="bottom-row">
 
         <div class="glass">
@@ -715,17 +766,27 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
         </div>
 
       </div>
-    </div></div><div id="footer">
+    </div><!-- end right-panel -->
+
+  </div><!-- end main -->
+
+  <!-- ── FOOTER ── -->
+  <div id="footer">
+    <button class="disclaimer-btn" onclick="showDisclaimerModal()">⚠️ READ DISCLAIMER & SAFETY NOTICE</button>
     <p>Copyright © 2026 <span class="highlight">Samarth Rajendra Kulkarni</span>. All rights reserved.</p>
-    <p>This simulator is dedicated to the <span class="highlight">Aerospace Engineering Department at Amity University Mumbai</span>.</p>
+    <p>This simulator is dedicated to the <span class="highlight">Department of Aerospace Engineering, Amity School of Engineering and Technology at Amity University Mumbai</span>.</p>
     <p>Thank you for your continuous support throughout the final year of our B.Tech project.</p>
     <div class="visitor-badge">VISITOR COUNT: <span id="visitor-count">0</span></div>
   </div>
 
-</div><div id="video-modal" class="modal-overlay">
+</div><!-- end app -->
+
+<!-- ── VIDEO MODAL ── -->
+<div id="video-modal" class="modal-overlay">
   <div class="modal-glass">
     <button class="close-btn" onclick="hideVideoModal()">✕</button>
     <div class="video-wrapper">
+      <!-- UPDATE YOUR VIDEO FILE NAME HERE -->
       <video id="actual-test-video" controls loop>
         <source src="actual_test_video.mp4" type="video/mp4">
         Your browser does not support the video tag.
@@ -734,6 +795,24 @@ input[type=range]#s-ethanol::-webkit-slider-thumb { background: var(--neon-cyan)
     <div class="video-caption">
       Actual hypergolic static test firing demonstrating spontaneous impingement ignition and sustained thrust.
       <span class="team-credits">[Team: Ayush Ghatkamble, Sanskriti Singh, Samarth Kulkarni]</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── DISCLAIMER MODAL ── -->
+<div id="disclaimer-modal" class="modal-overlay">
+  <div class="modal-glass">
+    <button class="close-btn" onclick="hideDisclaimerModal()">✕</button>
+    <h2 class="disclaimer-title">⚠️ SAFETY & LIABILITY DISCLAIMER</h2>
+    <div class="disclaimer-content">
+      <ul class="disclaimer-list">
+        <li><strong>Do Not Attempt at Home:</strong> Do not try to replicate, test, or mix these chemicals outside of a certified facility. Hypergolic reactions are extremely dangerous and volatile. They must only be conducted under expert guidance within strictly controlled laboratory environments.</li>
+        <li><strong>Strictly for Educational Purposes:</strong> This simulator is built solely for educational and illustrative purposes. Do not use this tool to measure parameters for actual physical experiments.</li>
+        <li><strong>Illustrative Data Only:</strong> The telemetry data presented in this dashboard—including temperature spikes, pressure curves, and ignition delays—are mathematically modeled approximations. They may not exact match real-world physical outcomes.</li>
+        <li><strong>Conceptual Aid:</strong> This interface is designed purely to help you imagine and conceptualize how the complex sequences of hypergolic impingement and combustion operate in a test-bed scenario.</li>
+        <li><strong>Result Divergence:</strong> Actual real-world results will change or diverge significantly from this simulation depending on environmental conditions, reactant purity, injector geometry, and scaling. You cannot rely on this simulation's output for actual hardware or engine design.</li>
+        <li><strong>No Liability:</strong> The creator and affiliated institutions assume no liability or responsibility for any injury, property damage, or loss caused by attempts to recreate these physical processes. Stay safe and follow standard aerospace safety protocols.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -1476,11 +1555,16 @@ function showVideoModal() {
   vid.currentTime = 0;
   vid.play().catch(e => console.log('Autoplay prevented by browser'));
 }
-
 function hideVideoModal() {
   document.getElementById('video-modal').classList.remove('show');
   const vid = document.getElementById('actual-test-video');
   vid.pause();
+}
+function showDisclaimerModal() {
+  document.getElementById('disclaimer-modal').classList.add('show');
+}
+function hideDisclaimerModal() {
+  document.getElementById('disclaimer-modal').classList.remove('show');
 }
 
 // ── ZOOM ──────────────────────────────────────────────
