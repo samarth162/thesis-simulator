@@ -1175,5 +1175,17 @@ addLog('// HGRS HYPERGOLIC REACTION SIM v0.1.4', 'log-bright');
 addLog('// KMnO₄ / H₂SO₄ / C₂H₅OH SURROGATE SYSTEM', 'log-dim');
 addLog('// ALL SYSTEMS NOMINAL. AWAITING COMMAND.', 'log-dim');
 </script>
+  <script>
+  // Disable Right-Click
+  document.addEventListener('contextmenu', event => event.preventDefault());
+
+  // Disable common Inspector shortcuts (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
+  document.onkeydown = function(e) {
+    if(e.keyCode == 123) return false;
+    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+  }
+</script>
 </body>
 </html>
